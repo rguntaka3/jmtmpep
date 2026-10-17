@@ -3,7 +3,7 @@ import glob
 import random
 import re
 import json
-import mimetypes  # <--- Essential for registering .mjs
+import mimetypes  
 from typing import List, Optional
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
@@ -19,6 +19,8 @@ from pypdf import PdfReader
 import numpy as np
 import requests
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 
 # --- Force Python to recognize .mjs as JavaScript ---
 mimetypes.init()

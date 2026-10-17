@@ -181,7 +181,8 @@
         let activeFilter = 'all';
         let modalViewMode = 'list';
 
-        const API_BASE = "http://localhost:8000";
+        // Use relative path base URL so it works seamlessly on localhost and live Render deployment
+        const API_BASE = "";
 
         document.addEventListener("DOMContentLoaded", () => {
             fetchHistoryCount();
@@ -312,8 +313,8 @@
 
                 document.getElementById("pdf-chapter-label").innerText = activeCh;
                 const filename = chapterFilesMap[activeCh] || `mpep-${activeCh}.pdf`;
-                const pdfUrl = encodeURIComponent(`http://localhost:8000/pdfs/${filename}`);
-                document.getElementById("pdf-iframe").src = `http://localhost:8000/viewer/web/viewer.html?file=${pdfUrl}#pagemode=none`;
+                const pdfUrl = encodeURIComponent(`${window.location.origin}/pdfs/${filename}`);
+                document.getElementById("pdf-iframe").src = `${window.location.origin}/viewer/web/viewer.html?file=${pdfUrl}#pagemode=none`;
             } else {
                 panel.classList.add("hidden");
                 splitLayout.className = "grid grid-cols-1 gap-6 w-full transition-all duration-300";
@@ -381,8 +382,8 @@
                     const chNum = data.chapter.replace("Chapter ", "").trim();
                     document.getElementById("pdf-chapter-label").innerText = chNum;
                     const filename = chapterFilesMap[chNum] || `mpep-${chNum}.pdf`;
-                    const pdfUrl = encodeURIComponent(`http://localhost:8000/pdfs/${filename}`);
-                    document.getElementById("pdf-iframe").src = `http://localhost:8000/viewer/web/viewer.html?file=${pdfUrl}#pagemode=none`;
+                    const pdfUrl = encodeURIComponent(`${window.location.origin}/pdfs/${filename}`);
+                    document.getElementById("pdf-iframe").src = `${window.location.origin}/viewer/web/viewer.html?file=${pdfUrl}#pagemode=none`;
                 }
 
                 const optionsContainer = document.getElementById("options-container");
