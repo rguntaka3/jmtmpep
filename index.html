@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPEP Patent Bar Master Quiz - Study Mode</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between font-sans">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 py-4 px-6 shadow-xs sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-indigo-900 flex items-center gap-2 cursor-pointer" onclick="returnToLanding()">
+                ⚖️ USPTO Patent Bar Master Quiz 
+                <span class="hidden sm:inline-block text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 font-medium">Study & Quiz Edition</span>
+            </h1>
+            <div id="header-actions" class="flex items-center gap-3">
+                <button onclick="toggleHistoryModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg border border-slate-300 font-medium flex items-center gap-1.5 cursor-pointer transition">
+                    📜 Review History (<span id="history-count" class="font-bold">0</span>)
+                </button>
+                <div id="stats" class="text-xs sm:text-sm text-slate-600 hidden font-medium">
+                    Score: <span id="score" class="text-emerald-600 font-bold">0</span> / <span id="total">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-container" class="max-w-2xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300">
+        
+        <!-- LANDING PAGE -->
+        <div id="landing-view" class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 mb-1">Quiz Session Setup</h2>
+                <p class="text-sm text-slate-500">Select your preferred training mode and target MPEP chapters.</p>
+            </div>
+            
+            <!-- Mode Selection Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div onclick="setMode('dynamic')" id="mode-card-dynamic" class="p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all">
+                    <h3 class="text-sm font-bold text-indigo-900 mb-0.5">🎲 GenAI Practice</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">Generate fresh questions via RAG vector search.</p>
+                </div>
+
+                <div onclick="setMode('spaced')" id="mode-card-spaced" class="p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
+                    <h3 class="text-sm font-bold text-slate-800 mb-0.5">🔄 Spaced Repetition</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">Targeted review of past & missed questions.</p>
+                </div>
+            </div>
+
+            <!-- Chapter Selection Grid -->
+            <div id="chapter-selection-box" class="space-y-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-indigo-900">Target MPEP Chapters</label>
+                <div id="chapter-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                    <div class="text-xs text-slate-400 py-4">Loading available chapters from server...</div>
+                </div>
+            </div>
+
+            <button onclick="startQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition duration-200 cursor-pointer shadow-sm shadow-indigo-600/20 text-sm">
+                Start Session 🚀
+            </button>
+        </div>
+
+        <!-- QUIZ & STUDY MODE WRAPPER -->
+        <div id="quiz-view" class="hidden w-full">
+            <div id="loading-state" class="text-center py-16 hidden">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent"></div>
+                <p class="mt-4 text-slate-500 text-xs font-medium tracking-wide">Synthesizing MPEP question...</p>
+            </div>
+
+            <!-- Split Panel Container -->
+            <div id="split-layout" class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full transition-all duration-300">
+                
+                <!-- Left Column: Quiz Card -->
+                <div id="quiz-card" class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-100 flex-wrap gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span id="badge-context" class="text-xs bg-indigo-50 text-indigo-800 border border-indigo-200 px-3 py-1 rounded-full font-medium">
+                                Context
+                            </span>
+                            <span id="badge-difficulty" class="text-xs bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-full font-semibold uppercase">
+                                Easy
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleStudyPanel()" id="study-panel-btn" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1">
+                                📖 <span id="study-btn-text">Hide PDF</span>
+                            </button>
+                            <button onclick="returnToLanding()" class="text-xs text-slate-400 hover:text-slate-700 underline cursor-pointer">
+                                End Session
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="adaptive-banner" class="hidden p-3 rounded-xl text-xs font-semibold text-center transition-all"></div>
+
+                    <h2 id="question-stem" class="text-base sm:text-lg font-semibold text-slate-900 leading-relaxed">
+                        Loading question...
+                    </h2>
+
+                    <div id="options-container" class="space-y-2.5"></div>
+
+                    <div id="explanation-box" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1.5">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-900">MPEP Rationale & Citation</h3>
+                        <p id="explanation-text" class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line"></p>
+                    </div>
+
+                    <div class="flex justify-end pt-2 border-t border-slate-100">
+                        <button id="next-btn" onclick="fetchNewQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl transition duration-200 cursor-pointer shadow-xs text-sm">
+                            Next Question 🚀
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Local PDF.js Study Panel -->
+                <div id="pdf-study-panel" class="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col h-[650px] overflow-hidden">
+                    <div class="flex justify-between items-center px-4 py-3 bg-slate-50 border-b border-slate-200 gap-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5 shrink-0">
+                            📄 Chapter <span id="pdf-chapter-label">Chapter</span> Viewer
+                        </h3>
+                        <button onclick="toggleStudyPanel()" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer shrink-0 p-1">✕</button>
+                    </div>
+                    <!-- Local PDF.js viewer iframe -->
+                    <iframe id="pdf-iframe" src="" class="w-full flex-grow bg-white border-0" title="MPEP Chapter PDF"></iframe>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- HISTORICAL QUESTIONS & SUMMARY MODAL -->
+    <div id="history-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-xl overflow-hidden">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Database History & Analytics</h3>
+                    <p class="text-xs text-slate-500">Inspect logs or view performance summaries by Chapter & Topic.</p>
+                </div>
+                <button onclick="toggleHistoryModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold cursor-pointer p-1">✕</button>
+            </div>
+
+            <div class="p-3 bg-white border-b border-slate-200 flex justify-between items-center text-xs">
+                <div class="flex gap-1.5">
+                    <button onclick="switchModalView('list')" id="tab-list" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs">Question Logs</button>
+                    <button onclick="switchModalView('summary')" id="tab-summary" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer">📊 Chapter Summary</button>
+                </div>
+                <button onclick="clearHistory()" class="text-rose-600 hover:text-rose-800 underline font-medium cursor-pointer">Clear History</button>
+            </div>
+
+            <div id="list-filters" class="p-2.5 bg-slate-50 border-b border-slate-200 flex gap-2 text-xs">
+                <button onclick="filterHistory('all')" id="filter-all" class="px-2.5 py-1 rounded-md bg-indigo-600 text-white font-medium cursor-pointer">All</button>
+                <button onclick="filterHistory('correct')" id="filter-correct" class="px-2.5 py-1 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer">Correct</button>
+                <button onclick="filterHistory('wrong')" id="filter-wrong" class="px-2.5 py-1 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer">Wrong</button>
+            </div>
+
+            <div id="history-list" class="p-4 sm:p-6 overflow-y-auto space-y-3 flex-grow bg-slate-50/50"></div>
+        </div>
+    </div>
+
+    <footer class="text-center py-3 text-xs text-slate-400 border-t border-slate-200 bg-white">
+        Powered by FastAPI, SQLite Database, and Groq LLM.
+    </footer>
+
+    <!-- Frontend Script -->
+    <script>
+        let currentQuestion = null;
+        let score = 0;
+        let totalAnswered = 0;
+        let isAnswered = false;
+        let selectedChapters = ["700"];
+        let chapterFilesMap = {};
+        let sessionMode = 'dynamic'; 
+        let spacedQueue = [];
+        let isStudyPanelOpen = true; 
+        
+        let currentDifficulty = "easy";
+        let consecutiveCorrect = 0;
+        let questionHistory = [];
+        let activeFilter = 'all';
+        let modalViewMode = 'list';
+
+        const API_BASE = "http://localhost:8000";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchHistoryCount();
+            fetchAvailableChapters();
+        });
+
+        function setMode(mode) {
+            sessionMode = mode;
+            const cardDyn = document.getElementById("mode-card-dynamic");
+            const cardSpaced = document.getElementById("mode-card-spaced");
+            const boxChapters = document.getElementById("chapter-selection-box");
+
+            if (mode === 'dynamic') {
+                cardDyn.className = "p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all";
+                cardSpaced.className = "p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300";
+                boxChapters.classList.remove("hidden");
+            } else {
+                cardSpaced.className = "p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all";
+                cardDyn.className = "p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300";
+                boxChapters.classList.add("hidden");
+            }
+        }
+
+        async function fetchAvailableChapters() {
+            try {
+                const res = await fetch(`${API_BASE}/chapters`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const container = document.getElementById("chapter-checkboxes");
+                    container.innerHTML = "";
+
+                    if (data.chapters.length === 0) {
+                        container.innerHTML = `<div class="text-xs text-rose-600 col-span-2">No MPEP PDF files found on server.</div>`;
+                        return;
+                    }
+
+                    data.chapters.forEach((item, idx) => {
+                        chapterFilesMap[item.chapter] = item.filename;
+                        const isChecked = idx === 0 ? "checked" : "";
+                        const label = document.createElement("label");
+                        label.className = "flex items-center gap-3 p-2.5 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-indigo-300 transition text-sm";
+                        label.innerHTML = `
+                            <input type="checkbox" name="chapter" value="${item.chapter}" ${isChecked} class="accent-indigo-600 w-4 h-4">
+                            <span class="font-medium text-slate-700">Chapter ${item.chapter}</span>
+                        `;
+                        container.appendChild(label);
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to load chapters from server:", err);
+            }
+        }
+
+        async function fetchHistoryCount() {
+            try {
+                const res = await fetch(`${API_BASE}/history`);
+                if (res.ok) {
+                    questionHistory = await res.json();
+                    document.getElementById("history-count").innerText = questionHistory.length;
+                }
+            } catch (err) {
+                console.error("Could not fetch history from backend:", err);
+            }
+        }
+
+        async function startQuiz() {
+            if (sessionMode === 'dynamic') {
+                const checkboxes = document.querySelectorAll('input[name="chapter"]:checked');
+                selectedChapters = Array.from(checkboxes).map(cb => cb.value);
+
+                if (selectedChapters.length === 0) {
+                    alert("Please select at least one MPEP chapter.");
+                    return;
+                }
+            } else {
+                const res = await fetch(`${API_BASE}/spaced-repetition-questions`);
+                if (res.ok) {
+                    spacedQueue = await res.json();
+                    if (spacedQueue.length === 0) {
+                        alert("No review items found in history database.");
+                        return;
+                    }
+                }
+            }
+
+            currentDifficulty = "easy";
+            consecutiveCorrect = 0;
+            score = 0;
+            totalAnswered = 0;
+
+            document.getElementById("landing-view").classList.add("hidden");
+            document.getElementById("quiz-view").classList.remove("hidden");
+            document.getElementById("stats").classList.remove("hidden");
+            document.getElementById("main-container").className = "max-w-7xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300";
+            document.getElementById("score").innerText = "0";
+            document.getElementById("total").innerText = "0";
+            
+            updateDifficultyBadge();
+            fetchNewQuestion();
+        }
+
+        function returnToLanding() {
+            document.getElementById("quiz-view").classList.add("hidden");
+            document.getElementById("stats").classList.add("hidden");
+            document.getElementById("landing-view").classList.remove("hidden");
+            document.getElementById("main-container").className = "max-w-2xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300";
+            
+            fetchHistoryCount();
+        }
+
+        function toggleStudyPanel() {
+            isStudyPanelOpen = !isStudyPanelOpen;
+            const panel = document.getElementById("pdf-study-panel");
+            const splitLayout = document.getElementById("split-layout");
+            const btnText = document.getElementById("study-btn-text");
+
+            if (isStudyPanelOpen) {
+                panel.classList.remove("hidden");
+                splitLayout.className = "grid grid-cols-1 lg:grid-cols-2 gap-6 w-full transition-all duration-300";
+                btnText.innerText = "Hide PDF";
+
+                let activeCh = "700";
+                if (currentQuestion && currentQuestion.chapter) {
+                    activeCh = currentQuestion.chapter.replace("Chapter ", "").trim();
+                } else if (selectedChapters.length > 0) {
+                    activeCh = selectedChapters[0];
+                }
+
+                document.getElementById("pdf-chapter-label").innerText = activeCh;
+                const filename = chapterFilesMap[activeCh] || `mpep-${activeCh}.pdf`;
+                const pdfUrl = encodeURIComponent(`http://localhost:8000/pdfs/${filename}`);
+                document.getElementById("pdf-iframe").src = `http://localhost:8000/viewer/web/viewer.html?file=${pdfUrl}#pagemode=none`;
+            } else {
+                panel.classList.add("hidden");
+                splitLayout.className = "grid grid-cols-1 gap-6 w-full transition-all duration-300";
+                btnText.innerText = "View PDF";
+            }
+        }
+
+        function updateDifficultyBadge() {
+            const badge = document.getElementById("badge-difficulty");
+            badge.innerText = currentDifficulty;
+            if (currentDifficulty === "easy") {
+                badge.className = "text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-semibold uppercase";
+            } else if (currentDifficulty === "medium") {
+                badge.className = "text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-semibold uppercase";
+            } else if (currentDifficulty === "hard") {
+                badge.className = "text-xs bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full font-semibold uppercase";
+            }
+        }
+
+        function showAdaptiveNotice(message, type) {
+            const banner = document.getElementById("adaptive-banner");
+            banner.innerText = message;
+            banner.className = `p-3 rounded-xl text-xs font-semibold text-center ${
+                type === 'up' 
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                    : 'bg-rose-50 text-rose-800 border border-rose-200'
+            }`;
+            banner.classList.remove("hidden");
+        }
+
+        async function fetchNewQuestion() {
+            const loadingState = document.getElementById("loading-state");
+            const quizCard = document.getElementById("quiz-card");
+            const explanationBox = document.getElementById("explanation-box");
+            const nextBtn = document.getElementById("next-btn");
+
+            isAnswered = false;
+            explanationBox.classList.add("hidden");
+            document.getElementById("adaptive-banner").classList.add("hidden");
+            quizCard.style.opacity = "0.5";
+            loadingState.classList.remove("hidden");
+            nextBtn.disabled = true;
+
+            try {
+                let data = null;
+                if (sessionMode === 'spaced') {
+                    if (spacedQueue.length === 0) {
+                        alert("Spaced repetition review session completed!");
+                        returnToLanding();
+                        return;
+                    }
+                    data = spacedQueue.shift();
+                } else {
+                    const url = `${API_BASE}/generate-question?chapters=${selectedChapters.join(",")}&difficulty=${currentDifficulty}`;
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error("Failed to fetch from backend generator.");
+                    data = await response.json();
+                }
+
+                currentQuestion = data;
+                document.getElementById("badge-context").innerText = data.chapter_context;
+                document.getElementById("question-stem").innerText = data.question_stem;
+
+                if (isStudyPanelOpen && data.chapter) {
+                    const chNum = data.chapter.replace("Chapter ", "").trim();
+                    document.getElementById("pdf-chapter-label").innerText = chNum;
+                    const filename = chapterFilesMap[chNum] || `mpep-${chNum}.pdf`;
+                    const pdfUrl = encodeURIComponent(`http://localhost:8000/pdfs/${filename}`);
+                    document.getElementById("pdf-iframe").src = `http://localhost:8000/viewer/web/viewer.html?file=${pdfUrl}#pagemode=none`;
+                }
+
+                const optionsContainer = document.getElementById("options-container");
+                optionsContainer.innerHTML = "";
+
+                data.options.forEach(optText => {
+                    const optLetter = optText.trim().charAt(0).toUpperCase();
+                    const button = document.createElement("button");
+                    button.className = "w-full text-left p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs sm:text-sm transition flex items-start gap-3 cursor-pointer";
+                    button.innerHTML = `<span class="font-bold text-indigo-600">${optLetter}.</span> <span class="flex-grow">${optText.substring(3)}</span>`;
+                    button.onclick = () => selectOption(button, optLetter);
+                    optionsContainer.appendChild(button);
+                });
+
+                document.getElementById("explanation-text").innerText = data.explanation;
+                nextBtn.innerText = "Next Question";
+
+            } catch (err) {
+                console.error(err);
+                alert("Error connecting to backend API.");
+            } finally {
+                loadingState.classList.add("hidden");
+                quizCard.style.opacity = "1";
+                nextBtn.disabled = false;
+            }
+        }
+
+        async function selectOption(selectedButton, chosenLetter) {
+            if (isAnswered) return;
+            isAnswered = true;
+            totalAnswered++;
+
+            const correctLetter = currentQuestion.correct_answer.trim().charAt(0).toUpperCase();
+            const isCorrect = chosenLetter === correctLetter;
+
+            const optionsContainer = document.getElementById("options-container");
+            const buttons = optionsContainer.getElementsByTagName("button");
+
+            if (isCorrect) {
+                selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs sm:text-sm flex items-start gap-3";
+                score++;
+                consecutiveCorrect++;
+
+                if (currentDifficulty === "easy" && consecutiveCorrect >= 2) {
+                    currentDifficulty = "medium";
+                    consecutiveCorrect = 0;
+                    showAdaptiveNotice("📈 2 Correct in a row! Upgraded to Medium difficulty.", "up");
+                } else if (currentDifficulty === "medium" && consecutiveCorrect >= 2) {
+                    currentDifficulty = "hard";
+                    consecutiveCorrect = 0;
+                    showAdaptiveNotice("🚀 2 Correct in a row! Upgraded to Hard difficulty.", "up");
+                }
+            } else {
+                selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-900 text-xs sm:text-sm flex items-start gap-3";
+
+                for (let btn of buttons) {
+                    if (btn.innerText.startsWith(correctLetter)) {
+                        btn.className = "w-full text-left p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs sm:text-sm flex items-start gap-3";
+                    }
+                }
+
+                consecutiveCorrect = 0;
+                if (currentDifficulty === "hard") {
+                    currentDifficulty = "medium";
+                    showAdaptiveNotice("⚠️ Incorrect on Hard. Reverting to Medium difficulty.", "down");
+                } else if (currentDifficulty === "medium") {
+                    currentDifficulty = "easy";
+                    showAdaptiveNotice("⚠️ Incorrect on Medium. Reverting to Easy difficulty.", "down");
+                }
+            }
+
+            const authoritativeChapter = currentQuestion.chapter || "Chapter 700";
+
+            try {
+                await fetch(`${API_BASE}/history`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        chapter: authoritativeChapter,
+                        context: currentQuestion.chapter_context,
+                        stem: currentQuestion.question_stem,
+                        options: currentQuestion.options,
+                        user_choice: chosenLetter,
+                        correct_choice: correctLetter,
+                        explanation: currentQuestion.explanation,
+                        difficulty: currentDifficulty,
+                        is_correct: isCorrect
+                    })
+                });
+                await fetchHistoryCount();
+            } catch (err) {
+                console.error("Failed to save history to database:", err);
+            }
+
+            updateDifficultyBadge();
+            document.getElementById("score").innerText = score;
+            document.getElementById("total").innerText = totalAnswered;
+            document.getElementById("explanation-box").classList.remove("hidden");
+        }
+
+        async function toggleHistoryModal() {
+            const modal = document.getElementById("history-modal");
+            modal.classList.toggle("hidden");
+            if (!modal.classList.contains("hidden")) {
+                await fetchHistoryCount();
+                renderModalContent();
+            }
+        }
+
+        function switchModalView(view) {
+            modalViewMode = view;
+            const listTab = document.getElementById("tab-list");
+            const summaryTab = document.getElementById("tab-summary");
+            const listFilters = document.getElementById("list-filters");
+
+            if (view === 'list') {
+                listTab.className = "px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs";
+                summaryTab.className = "px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
+                listFilters.classList.remove("hidden");
+            } else {
+                summaryTab.className = "px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs";
+                listTab.className = "px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
+                listFilters.classList.add("hidden");
+            }
+            renderModalContent();
+        }
+
+        function filterHistory(filter) {
+            activeFilter = filter;
+            ['all', 'correct', 'wrong'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (f === filter) {
+                    btn.className = "px-2.5 py-1 rounded-md bg-indigo-600 text-white font-medium cursor-pointer";
+                } else {
+                    btn.className = "px-2.5 py-1 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer";
+                }
+            });
+            renderModalContent();
+        }
+
+        async function clearHistory() {
+            if (confirm("Are you sure you want to clear all history from the database?")) {
+                try {
+                    await fetch(`${API_BASE}/history`, { method: "DELETE" });
+                    questionHistory = [];
+                    await fetchHistoryCount();
+                    renderModalContent();
+                } catch (err) {
+                    console.error("Failed to clear database history:", err);
+                }
+            }
+        }
+
+        function renderModalContent() {
+            if (modalViewMode === 'list') {
+                renderHistoryList();
+            } else {
+                renderChapterAndTopicSummary();
+            }
+        }
+
+        // Hashing utility for question identification in discussions
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash << 5) - hash + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(hash).toString();
+        }
+
+        async function loadHistoryComments(questionHash, containerId) {
+            const feed = document.getElementById(containerId);
+            feed.innerHTML = "<p class='text-xs text-slate-400 italic'>Loading comments...</p>";
+
+            try {
+                const response = await fetch(`${API_BASE}/comments/${questionHash}`);
+                const comments = await response.json();
+
+                if (comments.length === 0) {
+                    feed.innerHTML = '<p class="text-xs text-slate-400 italic">No comments yet. Start the discussion!</p>';
+                    return;
+                }
+
+                feed.innerHTML = comments.map(c => `
+                    <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-xs space-y-1">
+                        <div class="flex justify-between text-[10px] text-slate-400">
+                            <span class="font-bold text-slate-700">${escapeHtml(c.username)}</span>
+                            <span>${c.timestamp}</span>
+                        </div>
+                        <p class="text-slate-700 whitespace-pre-wrap">${escapeHtml(c.content)}</p>
+                    </div>
+                `).join('');
+            } catch (err) {
+                feed.innerHTML = '<p class="text-xs text-rose-500">Failed to load comments.</p>';
+            }
+        }
+
+        async function submitHistoryComment(event, questionHash, containerId, inputUserid, inputContentid) {
+            event.preventDefault();
+            const username = document.getElementById(inputUserid).value.trim() || "Anonymous";
+            const content = document.getElementById(inputContentid).value.trim();
+
+            if (!content) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question_hash: questionHash, username, content })
+                });
+
+                if (response.ok) {
+                    document.getElementById(inputContentid).value = '';
+                    loadHistoryComments(questionHash, containerId);
+                }
+            } catch (err) {
+                console.error("Error posting comment", err);
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function renderHistoryList() {
+            const list = document.getElementById("history-list");
+            list.innerHTML = "";
+
+            const filtered = questionHistory.filter(item => {
+                if (activeFilter === 'correct') return item.isCorrect;
+                if (activeFilter === 'wrong') return !item.isCorrect;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">No historical records found.</div>`;
+                return;
+            }
+
+            filtered.forEach((item, index) => {
+                const card = document.createElement("div");
+                card.className = "bg-white border border-slate-200 rounded-xl p-4 text-xs sm:text-sm space-y-2.5 shadow-xs";
+
+                const badge = item.isCorrect 
+                    ? `<span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold">✓ Correct</span>`
+                    : `<span class="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-semibold">✗ Incorrect</span>`;
+
+                const qHash = hashCode(item.stem);
+                const commentsFeedId = `history-comments-${index}`;
+                const userFieldId = `history-user-${index}`;
+                const contentFieldId = `history-content-${index}`;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center text-[11px]">
+                        <span class="text-indigo-900 font-bold">${item.chapter} | ${item.context}</span>
+                        <div class="flex gap-2 items-center">
+                            <span class="text-slate-400">${item.timestamp}</span>
+                            ${badge}
+                        </div>
+                    </div>
+                    <p class="text-slate-800 font-medium">${item.stem}</p>
+                    <div class="text-xs space-y-0.5 pl-2 border-l-2 border-slate-200">
+                        <p class="${item.isCorrect ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold'}">Your Choice: Choice ${item.userChoice}</p>
+                        <p class="text-emerald-700 font-semibold">Correct Answer: Choice ${item.correctChoice}</p>
+                    </div>
+                    <details class="text-xs text-slate-500 cursor-pointer pt-1" ontoggle="if(this.open) loadHistoryComments('${qHash}', '${commentsFeedId}')">
+                        <summary class="hover:text-indigo-600 font-medium transition-colors">Show Explanation & Peer Discussion</summary>
+                        <div class="mt-2 space-y-3">
+                            <p class="text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200 whitespace-pre-line text-xs">${item.explanation}</p>
+                            
+                            <!-- Peer Discussion Section in History -->
+                            <div class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl space-y-2">
+                                <h4 class="font-bold text-indigo-900 text-xs">🧠 Mental Models & Peer Discussion</h4>
+                                <div id="${commentsFeedId}" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                    <p class="text-xs text-slate-400 italic">Expand to load comments...</p>
+                                </div>
+                                <form onsubmit="submitHistoryComment(event, '${qHash}', '${commentsFeedId}', '${userFieldId}', '${contentFieldId}')" class="space-y-2 pt-1">
+                                    <input type="text" id="${userFieldId}" placeholder="Your name (optional)" class="w-full text-xs p-2 rounded-lg bg-white border border-slate-200">
+                                    <div class="flex gap-2">
+                                        <input type="text" id="${contentFieldId}" placeholder="Ask a question or share a thought..." required class="flex-grow text-xs p-2 rounded-lg bg-white border border-slate-200">
+                                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer">Post</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </details>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function renderChapterAndTopicSummary() {
+            const list = document.getElementById("history-list");
+            list.innerHTML = "";
+
+            if (questionHistory.length === 0) {
+                list.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">No data available for summary breakdown.</div>`;
+                return;
+            }
+
+            const chapterMap = {};
+            questionHistory.forEach(item => {
+                const chapter = item.chapter || "Chapter 700";
+                const topic = item.context || "Unspecified Section";
+
+                if (!chapterMap[chapter]) {
+                    chapterMap[chapter] = { total: 0, correct: 0, wrong: 0, topics: {} };
+                }
+
+                chapterMap[chapter].total++;
+                if (item.isCorrect) chapterMap[chapter].correct++;
+                else chapterMap[chapter].wrong++;
+
+                if (!chapterMap[chapter].topics[topic]) {
+                    chapterMap[chapter].topics[topic] = { total: 0, correct: 0, wrong: 0 };
+                }
+                chapterMap[chapter].topics[topic].total++;
+                if (item.isCorrect) chapterMap[chapter].topics[topic].correct++;
+                else chapterMap[chapter].topics[topic].wrong++;
+            });
+
+            for (const [chapterName, chStats] of Object.entries(chapterMap)) {
+                const chAccuracy = Math.round((chStats.correct / chStats.total) * 100);
+
+                const chapterCard = document.createElement("div");
+                chapterCard.className = "bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3 shadow-xs";
+
+                let html = `
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                        <h4 class="text-sm sm:text-base font-bold text-indigo-900">📂 ${chapterName}</h4>
+                        <span class="text-[11px] px-2.5 py-0.5 rounded-full font-bold ${
+                            chAccuracy >= 75 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                            chAccuracy >= 40 ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                            'bg-rose-50 text-rose-800 border border-rose-200'
+                        }">${chAccuracy}% Accuracy (${chStats.correct}/${chStats.total})</span>
+                    </div>
+                    <div class="space-y-2 pl-1 sm:pl-2 border-l border-slate-200">
+                `;
+
+                for (const [topicName, tStats] of Object.entries(chStats.topics)) {
+                    const tAccuracy = Math.round((tStats.correct / tStats.total) * 100);
+                    html += `
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs space-y-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-800 font-semibold">📌 ${topicName}</span>
+                                <span class="font-bold ${tAccuracy >= 75 ? 'text-emerald-700' : tAccuracy >= 40 ? 'text-amber-700' : 'text-rose-700'}">${tAccuracy}% (${tStats.correct}/${tStats.total})</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-slate-500 text-[11px]">
+                                <div>Attempts: <strong class="text-slate-800">${tStats.total}</strong></div>
+                                <div>Correct: <strong class="text-emerald-600">${tStats.correct}</strong></div>
+                                <div>Wrong: <strong class="text-rose-600">${tStats.wrong}</strong></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+                chapterCard.innerHTML = html;
+                list.appendChild(chapterCard);
+            }
+        }
+    </script>
+</body>
+</html>
