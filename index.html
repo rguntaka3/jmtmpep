@@ -5,19 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MPEP Patent Bar Master Quiz - Study Mode</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Google Identity Services SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between font-sans">
 
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 py-4 px-6 shadow-xs sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-3">
             <h1 class="text-base sm:text-lg font-bold tracking-tight text-indigo-900 flex items-center gap-2 cursor-pointer" onclick="returnToLanding()">
                 ⚖️ USPTO Patent Bar Master Quiz 
                 <span class="hidden sm:inline-block text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 font-medium">Study & Quiz Edition</span>
             </h1>
-            <div id="header-actions" class="flex items-center gap-3">
-                <button onclick="toggleHistoryModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg border border-slate-300 font-medium flex items-center gap-1.5 cursor-pointer transition">
-                    📜 Review History (<span id="history-count" class="font-bold">0</span>)
+            <div id="header-actions" class="flex items-center gap-3 flex-wrap">
+                <!-- Google SSO Widget Container / User Badge -->
+                <div id="auth-container" class="flex items-center gap-2">
+                    <div id="google-login-btn-wrapper" class="hidden">
+                        <div id="g_id_onload"
+                            data-client_id="380713892028-0qji0jjpbsbcj2984qgk5mtukcqtqt06.apps.googleusercontent.com"
+                            data-callback="handleCredentialResponse"
+                            data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin" data-type="standard" data-size="medium"></div>
+                    </div>
+                    <div id="user-badge" class="hidden flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700">
+                        <img id="user-avatar" src="" class="w-5 h-5 rounded-full" alt="avatar" />
+                        <span id="current-username-display" class="font-bold text-indigo-900"></span>
+                        <button onclick="googleLogout()" class="ml-2 text-rose-600 hover:text-rose-800 underline cursor-pointer text-xs">Logout</button>
+                    </div>
+                </div>
+
+                <button onclick="showHistoryView()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg border border-slate-300 font-medium flex items-center gap-1.5 cursor-pointer transition">
+                    📜 My Review History (<span id="history-count" class="font-bold">0</span>)
                 </button>
                 <div id="stats" class="text-xs sm:text-sm text-slate-600 hidden font-medium">
                     Score: <span id="score" class="text-emerald-600 font-bold">0</span> / <span id="total">0</span>
@@ -27,39 +46,54 @@
     </header>
 
     <!-- Main Content Area -->
-    <main id="main-container" class="max-w-2xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300">
+    <main id="main-container" class="max-w-3xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300">
         
         <!-- LANDING PAGE -->
-        <div id="landing-view" class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div>
-                <h2 class="text-xl font-bold text-slate-900 mb-1">Quiz Session Setup</h2>
-                <p class="text-sm text-slate-500">Select your preferred training mode and target MPEP chapters.</p>
-            </div>
-            
-            <!-- Mode Selection Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div onclick="setMode('dynamic')" id="mode-card-dynamic" class="p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all">
-                    <h3 class="text-sm font-bold text-indigo-900 mb-0.5">🎲 GenAI Practice</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">Generate fresh questions via RAG vector search.</p>
+        <div id="landing-view" class="w-full space-y-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 mb-1">Quiz Session Setup</h2>
+                    <p class="text-sm text-slate-500">Select your preferred training mode and target MPEP chapters.</p>
+                </div>
+                
+                <!-- Mode Selection Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div onclick="setMode('dynamic')" id="mode-card-dynamic" class="p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all">
+                        <h3 class="text-sm font-bold text-indigo-900 mb-0.5">🎲 GenAI Practice</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed">Generate fresh questions via RAG vector search.</p>
+                    </div>
+
+                    <div onclick="setMode('spaced')" id="mode-card-spaced" class="p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
+                        <h3 class="text-sm font-bold text-slate-800 mb-0.5">🔄 Spaced Repetition</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed">Targeted review of past & missed questions.</p>
+                    </div>
                 </div>
 
-                <div onclick="setMode('spaced')" id="mode-card-spaced" class="p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
-                    <h3 class="text-sm font-bold text-slate-800 mb-0.5">🔄 Spaced Repetition</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">Targeted review of past & missed questions.</p>
+                <!-- Chapter Selection Grid -->
+                <div id="chapter-selection-box" class="space-y-2">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-indigo-900">Target MPEP Chapters</label>
+                    <div id="chapter-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                        <div class="text-xs text-slate-400 py-4">Loading available chapters from server...</div>
+                    </div>
                 </div>
+
+                <button onclick="startQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition duration-200 cursor-pointer shadow-sm shadow-indigo-600/20 text-sm">
+                    Start Session 🚀
+                </button>
             </div>
 
-            <!-- Chapter Selection Grid -->
-            <div id="chapter-selection-box" class="space-y-2">
-                <label class="block text-xs font-bold uppercase tracking-wider text-indigo-900">Target MPEP Chapters</label>
-                <div id="chapter-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                    <div class="text-xs text-slate-400 py-4">Loading available chapters from server...</div>
+            <!-- COMMUNITY DISCUSSION SECTION -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="border-b border-slate-100 pb-3">
+                    <h3 class="text-base font-bold text-indigo-900 flex items-center gap-2">
+                        💬 Community Question Discussions
+                    </h3>
+                    <p class="text-xs text-slate-500">Participate in discussions, ask questions, and share mental models on recent practice questions.</p>
+                </div>
+                <div id="community-discussions-feed" class="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                    <p class="text-xs text-slate-400 italic text-center py-6">Loading community discussions...</p>
                 </div>
             </div>
-
-            <button onclick="startQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition duration-200 cursor-pointer shadow-sm shadow-indigo-600/20 text-sm">
-                Start Session 🚀
-            </button>
         </div>
 
         <!-- QUIZ & STUDY MODE WRAPPER -->
@@ -121,50 +155,52 @@
                         </h3>
                         <button onclick="toggleStudyPanel()" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer shrink-0 p-1">✕</button>
                     </div>
-                    <!-- Local PDF.js viewer iframe -->
                     <iframe id="pdf-iframe" src="" class="w-full flex-grow bg-white border-0" title="MPEP Chapter PDF"></iframe>
                 </div>
 
             </div>
         </div>
 
+        <!-- HISTORY & DISCUSSION VIEW -->
+        <div id="history-view" class="hidden w-full space-y-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-4 flex-wrap gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Review History & Discussion Threads</h2>
+                        <p class="text-xs sm:text-sm text-slate-500">Inspect historical question logs, performance analytics, and community peer discussions for user: <span id="history-user-label" class="font-bold text-indigo-900"></span>.</p>
+                    </div>
+                    <button onclick="returnToLanding()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer shadow-xs">
+                        ← Back to Dashboard
+                    </button>
+                </div>
+
+                <div class="flex justify-between items-center text-xs flex-wrap gap-3">
+                    <div class="flex gap-1.5">
+                        <button onclick="switchModalView('list')" id="tab-list" class="px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs">Question Logs & Discussions</button>
+                        <button onclick="switchModalView('summary')" id="tab-summary" class="px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer">📊 Chapter Summary</button>
+                    </div>
+                    <button onclick="clearHistory()" class="text-rose-600 hover:text-rose-800 underline font-medium cursor-pointer">Clear History</button>
+                </div>
+
+                <div id="list-filters" class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex gap-2 text-xs">
+                    <button onclick="filterHistory('all')" id="filter-all" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-medium cursor-pointer">All</button>
+                    <button onclick="filterHistory('correct')" id="filter-correct" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer">Correct</button>
+                    <button onclick="filterHistory('wrong')" id="filter-wrong" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer">Wrong</button>
+                </div>
+
+                <div id="history-list" class="space-y-4"></div>
+            </div>
+        </div>
+
     </main>
 
-    <!-- HISTORICAL QUESTIONS & SUMMARY MODAL -->
-    <div id="history-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-xl overflow-hidden">
-            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">Database History & Analytics</h3>
-                    <p class="text-xs text-slate-500">Inspect logs or view performance summaries by Chapter & Topic.</p>
-                </div>
-                <button onclick="toggleHistoryModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold cursor-pointer p-1">✕</button>
-            </div>
-
-            <div class="p-3 bg-white border-b border-slate-200 flex justify-between items-center text-xs">
-                <div class="flex gap-1.5">
-                    <button onclick="switchModalView('list')" id="tab-list" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs">Question Logs</button>
-                    <button onclick="switchModalView('summary')" id="tab-summary" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer">📊 Chapter Summary</button>
-                </div>
-                <button onclick="clearHistory()" class="text-rose-600 hover:text-rose-800 underline font-medium cursor-pointer">Clear History</button>
-            </div>
-
-            <div id="list-filters" class="p-2.5 bg-slate-50 border-b border-slate-200 flex gap-2 text-xs">
-                <button onclick="filterHistory('all')" id="filter-all" class="px-2.5 py-1 rounded-md bg-indigo-600 text-white font-medium cursor-pointer">All</button>
-                <button onclick="filterHistory('correct')" id="filter-correct" class="px-2.5 py-1 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer">Correct</button>
-                <button onclick="filterHistory('wrong')" id="filter-wrong" class="px-2.5 py-1 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer">Wrong</button>
-            </div>
-
-            <div id="history-list" class="p-4 sm:p-6 overflow-y-auto space-y-3 flex-grow bg-slate-50/50"></div>
-        </div>
-    </div>
-
-    <footer class="text-center py-3 text-xs text-slate-400 border-t border-slate-200 bg-white">
+    <footer class="text-center py-3 text-xs text-slate-400 border-t border-slate-200 bg-white mt-auto">
         Powered by FastAPI, SQLite Database, and Groq LLM.
     </footer>
 
     <!-- Frontend Script -->
     <script>
+        let currentUser = JSON.parse(localStorage.getItem("mpep_google_user")) || null;
         let currentQuestion = null;
         let score = 0;
         let totalAnswered = 0;
@@ -181,13 +217,66 @@
         let activeFilter = 'all';
         let modalViewMode = 'list';
 
-        // Use relative path base URL so it works seamlessly on localhost and live Render deployment
         const API_BASE = "";
 
         document.addEventListener("DOMContentLoaded", () => {
+            checkUserSession();
             fetchHistoryCount();
             fetchAvailableChapters();
+            loadCommunityDiscussions();
         });
+
+        function checkUserSession() {
+            const loginWrapper = document.getElementById("google-login-btn-wrapper");
+            const userBadge = document.getElementById("user-badge");
+
+            if (currentUser) {
+                loginWrapper.classList.add("hidden");
+                userBadge.classList.remove("hidden");
+                document.getElementById("current-username-display").innerText = currentUser.username;
+                if (currentUser.picture) {
+                    document.getElementById("user-avatar").src = currentUser.picture;
+                }
+            } else {
+                loginWrapper.classList.remove("hidden");
+                userBadge.classList.add("hidden");
+            }
+        }
+
+        async function handleCredentialResponse(response) {
+            try {
+                const res = await fetch(`${API_BASE}/auth/google`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ credential: response.credential })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Google authentication failed.");
+
+                currentUser = { username: data.username, email: data.email, picture: data.picture };
+                localStorage.setItem("mpep_google_user", JSON.stringify(currentUser));
+
+                checkUserSession();
+                fetchHistoryCount();
+                loadCommunityDiscussions();
+                alert(`Welcome back, ${currentUser.username}!`);
+            } catch (err) {
+                alert("Sign-In Error: " + err.message);
+            }
+        }
+
+        function googleLogout() {
+            localStorage.removeItem("mpep_google_user");
+            currentUser = null;
+            checkUserSession();
+            fetchHistoryCount();
+            loadCommunityDiscussions();
+            location.reload();
+        }
+
+        function getActiveUsername() {
+            return currentUser ? currentUser.email || currentUser.username : "guest";
+        }
 
         function setMode(mode) {
             sessionMode = mode;
@@ -238,7 +327,8 @@
 
         async function fetchHistoryCount() {
             try {
-                const res = await fetch(`${API_BASE}/history`);
+                const uname = getActiveUsername();
+                const res = await fetch(`${API_BASE}/history?username=${encodeURIComponent(uname)}`);
                 if (res.ok) {
                     questionHistory = await res.json();
                     document.getElementById("history-count").innerText = questionHistory.length;
@@ -258,11 +348,12 @@
                     return;
                 }
             } else {
-                const res = await fetch(`${API_BASE}/spaced-repetition-questions`);
+                const uname = getActiveUsername();
+                const res = await fetch(`${API_BASE}/spaced-repetition-questions?username=${encodeURIComponent(uname)}`);
                 if (res.ok) {
                     spacedQueue = await res.json();
                     if (spacedQueue.length === 0) {
-                        alert("No review items found in history database.");
+                        alert("No review items found in history database for this user.");
                         return;
                     }
                 }
@@ -274,6 +365,7 @@
             totalAnswered = 0;
 
             document.getElementById("landing-view").classList.add("hidden");
+            document.getElementById("history-view").classList.add("hidden");
             document.getElementById("quiz-view").classList.remove("hidden");
             document.getElementById("stats").classList.remove("hidden");
             document.getElementById("main-container").className = "max-w-7xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300";
@@ -286,11 +378,25 @@
 
         function returnToLanding() {
             document.getElementById("quiz-view").classList.add("hidden");
+            document.getElementById("history-view").classList.add("hidden");
             document.getElementById("stats").classList.add("hidden");
             document.getElementById("landing-view").classList.remove("hidden");
-            document.getElementById("main-container").className = "max-w-2xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300";
+            document.getElementById("main-container").className = "max-w-3xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300";
             
             fetchHistoryCount();
+            loadCommunityDiscussions();
+        }
+
+        async function showHistoryView() {
+            document.getElementById("landing-view").classList.add("hidden");
+            document.getElementById("quiz-view").classList.add("hidden");
+            document.getElementById("stats").classList.add("hidden");
+            document.getElementById("history-view").classList.remove("hidden");
+            document.getElementById("main-container").className = "max-w-4xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col my-auto transition-all duration-300";
+            document.getElementById("history-user-label").innerText = currentUser ? currentUser.username : "guest";
+            
+            await fetchHistoryCount();
+            renderModalContent();
         }
 
         function toggleStudyPanel() {
@@ -462,6 +568,7 @@
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
+                        username: getActiveUsername(),
                         chapter: authoritativeChapter,
                         context: currentQuestion.chapter_context,
                         stem: currentQuestion.question_stem,
@@ -484,15 +591,6 @@
             document.getElementById("explanation-box").classList.remove("hidden");
         }
 
-        async function toggleHistoryModal() {
-            const modal = document.getElementById("history-modal");
-            modal.classList.toggle("hidden");
-            if (!modal.classList.contains("hidden")) {
-                await fetchHistoryCount();
-                renderModalContent();
-            }
-        }
-
         function switchModalView(view) {
             modalViewMode = view;
             const listTab = document.getElementById("tab-list");
@@ -500,12 +598,12 @@
             const listFilters = document.getElementById("list-filters");
 
             if (view === 'list') {
-                listTab.className = "px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs";
-                summaryTab.className = "px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
+                listTab.className = "px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs";
+                summaryTab.className = "px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
                 listFilters.classList.remove("hidden");
             } else {
-                summaryTab.className = "px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs";
-                listTab.className = "px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
+                summaryTab.className = "px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs";
+                listTab.className = "px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
                 listFilters.classList.add("hidden");
             }
             renderModalContent();
@@ -516,18 +614,19 @@
             ['all', 'correct', 'wrong'].forEach(f => {
                 const btn = document.getElementById(`filter-${f}`);
                 if (f === filter) {
-                    btn.className = "px-2.5 py-1 rounded-md bg-indigo-600 text-white font-medium cursor-pointer";
+                    btn.className = "px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-medium cursor-pointer";
                 } else {
-                    btn.className = "px-2.5 py-1 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer";
+                    btn.className = "px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer";
                 }
             });
             renderModalContent();
         }
 
         async function clearHistory() {
-            if (confirm("Are you sure you want to clear all history from the database?")) {
+            const uname = getActiveUsername();
+            if (confirm(`Are you sure you want to clear all history for user "${uname}"?`)) {
                 try {
-                    await fetch(`${API_BASE}/history`, { method: "DELETE" });
+                    await fetch(`${API_BASE}/history?username=${encodeURIComponent(uname)}`, { method: "DELETE" });
                     questionHistory = [];
                     await fetchHistoryCount();
                     renderModalContent();
@@ -545,7 +644,6 @@
             }
         }
 
-        // Hashing utility for question identification in discussions
         function hashCode(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
@@ -557,21 +655,21 @@
 
         async function loadHistoryComments(questionHash, containerId) {
             const feed = document.getElementById(containerId);
-            feed.innerHTML = "<p class='text-xs text-slate-400 italic'>Loading comments...</p>";
+            feed.innerHTML = "<p class='text-xs text-slate-400 italic'>Loading discussion threads...</p>";
 
             try {
                 const response = await fetch(`${API_BASE}/comments/${questionHash}`);
                 const comments = await response.json();
 
                 if (comments.length === 0) {
-                    feed.innerHTML = '<p class="text-xs text-slate-400 italic">No comments yet. Start the discussion!</p>';
+                    feed.innerHTML = '<p class="text-xs text-slate-400 italic">No comments yet. Start the discussion below!</p>';
                     return;
                 }
 
                 feed.innerHTML = comments.map(c => `
-                    <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-xs space-y-1">
-                        <div class="flex justify-between text-[10px] text-slate-400">
-                            <span class="font-bold text-slate-700">${escapeHtml(c.username)}</span>
+                    <div class="bg-white p-3 rounded-lg border border-slate-200 text-xs space-y-1 shadow-2xs">
+                        <div class="flex justify-between text-[11px] text-slate-400">
+                            <span class="font-bold text-slate-700">@${escapeHtml(c.username)}</span>
                             <span>${c.timestamp}</span>
                         </div>
                         <p class="text-slate-700 whitespace-pre-wrap">${escapeHtml(c.content)}</p>
@@ -584,7 +682,7 @@
 
         async function submitHistoryComment(event, questionHash, containerId, inputUserid, inputContentid) {
             event.preventDefault();
-            const username = document.getElementById(inputUserid).value.trim() || "Anonymous";
+            const username = document.getElementById(inputUserid).value.trim() || getActiveUsername();
             const content = document.getElementById(inputContentid).value.trim();
 
             if (!content) return;
@@ -605,6 +703,65 @@
             }
         }
 
+        async function loadCommunityDiscussions() {
+            const feed = document.getElementById("community-discussions-feed");
+            if (!feed) return;
+            feed.innerHTML = "<p class='text-xs text-slate-400 italic text-center py-6'>Loading community discussions...</p>";
+
+            try {
+                const res = await fetch(`${API_BASE}/community-questions`);
+                if (!res.ok) throw new Error("Failed to load community questions");
+                const questions = await res.json();
+
+                if (questions.length === 0) {
+                    feed.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-6">No practice questions in the community feed yet. Start a quiz session to generate and discuss questions!</p>';
+                    return;
+                }
+
+                feed.innerHTML = "";
+                questions.forEach((q, index) => {
+                    const qHash = hashCode(q.stem);
+                    const commentsFeedId = `comm-comments-${index}`;
+                    const userFieldId = `comm-user-${index}`;
+                    const contentFieldId = `comm-content-${index}`;
+
+                    const card = document.createElement("div");
+                    card.className = "bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs sm:text-sm space-y-3";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-indigo-900 font-bold">${q.chapter} | ${q.context}</span>
+                            <span class="text-slate-400 text-[11px]">${q.timestamp}</span>
+                        </div>
+                        <p class="text-slate-900 font-semibold leading-relaxed">${q.stem}</p>
+                        
+                        <details class="text-xs text-slate-600 cursor-pointer">
+                            <summary class="font-bold text-indigo-700 hover:text-indigo-900 transition-colors">📖 View Rationale & Explanation</summary>
+                            <p class="text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-200 mt-2 whitespace-pre-line text-xs">${q.explanation}</p>
+                        </details>
+
+                        <div class="bg-white border border-indigo-100 p-3 rounded-xl space-y-2.5 mt-2">
+                            <h4 class="font-bold text-indigo-900 text-xs">💬 Discussion Thread</h4>
+                            <div id="${commentsFeedId}" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                <p class="text-xs text-slate-400 italic">Loading comments...</p>
+                            </div>
+                            <form onsubmit="submitHistoryComment(event, '${qHash}', '${commentsFeedId}', '${userFieldId}', '${contentFieldId}')" class="space-y-2 pt-1 border-t border-slate-100">
+                                <input type="text" id="${userFieldId}" value="${currentUser ? currentUser.username : ''}" placeholder="Your name" class="w-full text-xs p-2 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <div class="flex gap-2">
+                                    <input type="text" id="${contentFieldId}" placeholder="Share your thought or ask a question..." required class="flex-grow text-xs p-2 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer">Post</button>
+                                </div>
+                            </form>
+                        </div>
+                    `;
+                    feed.appendChild(card);
+                    loadHistoryComments(qHash, commentsFeedId);
+                });
+            } catch (err) {
+                console.error(err);
+                feed.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Failed to load community discussions.</p>';
+            }
+        }
+
         function escapeHtml(str) {
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
@@ -620,17 +777,17 @@
             });
 
             if (filtered.length === 0) {
-                list.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">No historical records found.</div>`;
+                list.innerHTML = `<div class="text-center py-16 text-slate-400 text-xs sm:text-sm">No historical records found for user "${getActiveUsername()}". Complete some quiz sessions to see them here!</div>`;
                 return;
             }
 
             filtered.forEach((item, index) => {
                 const card = document.createElement("div");
-                card.className = "bg-white border border-slate-200 rounded-xl p-4 text-xs sm:text-sm space-y-2.5 shadow-xs";
+                card.className = "bg-white border border-slate-200 rounded-xl p-5 text-xs sm:text-sm space-y-3 shadow-xs";
 
                 const badge = item.isCorrect 
-                    ? `<span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold">✓ Correct</span>`
-                    : `<span class="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-semibold">✗ Incorrect</span>`;
+                    ? `<span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-semibold">✓ Correct</span>`
+                    : `<span class="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full font-semibold">✗ Incorrect</span>`;
 
                 const qHash = hashCode(item.stem);
                 const commentsFeedId = `history-comments-${index}`;
@@ -638,41 +795,42 @@
                 const contentFieldId = `history-content-${index}`;
 
                 card.innerHTML = `
-                    <div class="flex justify-between items-center text-[11px]">
-                        <span class="text-indigo-900 font-bold">${item.chapter} | ${item.context}</span>
+                    <div class="flex justify-between items-center text-xs flex-wrap gap-2">
+                        <span class="text-indigo-900 font-bold">${item.chapter} | ${item.context} <span class="text-slate-400 font-normal">(@${item.username || 'guest'})</span></span>
                         <div class="flex gap-2 items-center">
                             <span class="text-slate-400">${item.timestamp}</span>
                             ${badge}
                         </div>
                     </div>
-                    <p class="text-slate-800 font-medium">${item.stem}</p>
-                    <div class="text-xs space-y-0.5 pl-2 border-l-2 border-slate-200">
+                    <p class="text-slate-800 font-semibold text-sm sm:text-base leading-relaxed">${item.stem}</p>
+                    <div class="text-xs space-y-1 pl-3 border-l-2 border-slate-200">
                         <p class="${item.isCorrect ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold'}">Your Choice: Choice ${item.userChoice}</p>
                         <p class="text-emerald-700 font-semibold">Correct Answer: Choice ${item.correctChoice}</p>
                     </div>
-                    <details class="text-xs text-slate-500 cursor-pointer pt-1" ontoggle="if(this.open) loadHistoryComments('${qHash}', '${commentsFeedId}')">
-                        <summary class="hover:text-indigo-600 font-medium transition-colors">Show Explanation & Peer Discussion</summary>
-                        <div class="mt-2 space-y-3">
-                            <p class="text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200 whitespace-pre-line text-xs">${item.explanation}</p>
-                            
-                            <!-- Peer Discussion Section in History -->
-                            <div class="bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl space-y-2">
-                                <h4 class="font-bold text-indigo-900 text-xs">🧠 Mental Models & Peer Discussion</h4>
-                                <div id="${commentsFeedId}" class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                                    <p class="text-xs text-slate-400 italic">Expand to load comments...</p>
-                                </div>
-                                <form onsubmit="submitHistoryComment(event, '${qHash}', '${commentsFeedId}', '${userFieldId}', '${contentFieldId}')" class="space-y-2 pt-1">
-                                    <input type="text" id="${userFieldId}" placeholder="Your name (optional)" class="w-full text-xs p-2 rounded-lg bg-white border border-slate-200">
-                                    <div class="flex gap-2">
-                                        <input type="text" id="${contentFieldId}" placeholder="Ask a question or share a thought..." required class="flex-grow text-xs p-2 rounded-lg bg-white border border-slate-200">
-                                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer">Post</button>
-                                    </div>
-                                </form>
-                            </div>
+
+                    <div class="pt-2">
+                        <details class="text-xs text-slate-600 cursor-pointer" open>
+                            <summary class="font-bold text-indigo-700 hover:text-indigo-900 transition-colors mb-2">📖 Explanation & MPEP Rationale</summary>
+                            <p class="text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200 whitespace-pre-line text-xs sm:text-sm">${item.explanation}</p>
+                        </details>
+                    </div>
+                    
+                    <div class="bg-indigo-50/60 border border-indigo-100 p-4 rounded-xl space-y-3 mt-4">
+                        <h4 class="font-bold text-indigo-900 text-xs flex items-center gap-1.5">🧠 Community Peer Discussion & Notes</h4>
+                        <div id="${commentsFeedId}" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            <p class="text-xs text-slate-400 italic">Loading discussion threads...</p>
                         </div>
-                    </details>
+                        <form onsubmit="submitHistoryComment(event, '${qHash}', '${commentsFeedId}', '${userFieldId}', '${contentFieldId}')" class="space-y-2 pt-2 border-t border-indigo-100">
+                            <input type="text" id="${userFieldId}" value="${currentUser ? currentUser.username : ''}" placeholder="Your name" class="w-full text-xs p-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <div class="flex gap-2">
+                                <input type="text" id="${contentFieldId}" placeholder="Ask a question or share a thought..." required class="flex-grow text-xs p-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition">Post Comment</button>
+                            </div>
+                        </form>
+                    </div>
                 `;
                 list.appendChild(card);
+                loadHistoryComments(qHash, commentsFeedId);
             });
         }
 
@@ -681,7 +839,7 @@
             list.innerHTML = "";
 
             if (questionHistory.length === 0) {
-                list.innerHTML = `<div class="text-center py-12 text-slate-400 text-xs">No data available for summary breakdown.</div>`;
+                list.innerHTML = `<div class="text-center py-16 text-slate-400 text-xs">No data available for summary breakdown.</div>`;
                 return;
             }
 
@@ -727,12 +885,12 @@
                 for (const [topicName, tStats] of Object.entries(chStats.topics)) {
                     const tAccuracy = Math.round((tStats.correct / tStats.total) * 100);
                     html += `
-                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs space-y-1.5">
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1.5">
                             <div class="flex justify-between items-center">
-                                <span class="text-slate-800 font-semibold">📌 ${topicName}</span>
+                                <span class="text-slate-800 font-semibold text-sm">📌 ${topicName}</span>
                                 <span class="font-bold ${tAccuracy >= 75 ? 'text-emerald-700' : tAccuracy >= 40 ? 'text-amber-700' : 'text-rose-700'}">${tAccuracy}% (${tStats.correct}/${tStats.total})</span>
                             </div>
-                            <div class="grid grid-cols-3 gap-2 text-slate-500 text-[11px]">
+                            <div class="grid grid-cols-3 gap-2 text-slate-500 text-xs">
                                 <div>Attempts: <strong class="text-slate-800">${tStats.total}</strong></div>
                                 <div>Correct: <strong class="text-emerald-600">${tStats.correct}</strong></div>
                                 <div>Wrong: <strong class="text-rose-600">${tStats.wrong}</strong></div>

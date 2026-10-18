@@ -19,7 +19,10 @@ from pypdf import PdfReader
 import numpy as np
 import requests
 from datetime import datetime
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # --- Force Python to recognize .mjs as JavaScript ---
@@ -29,7 +32,6 @@ mimetypes.add_type("application/javascript", ".js")
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Custom StaticFiles class as a secondary safety net
 class JavaScriptSafeStaticFiles(StaticFiles):
     def file_response(self, full_path, stat_result, scope, status_code=200):
         response = super().file_response(full_path, stat_result, scope, status_code=status_code)
@@ -37,6 +39,7 @@ class JavaScriptSafeStaticFiles(StaticFiles):
             response.media_type = "application/javascript"
             response.headers["content-type"] = "application/javascript"
         return response
+
 chapter_memory = {}
 
 def get_hash_vector(text: str, num_features: int = 2048) -> np.ndarray:
@@ -64,10 +67,7 @@ async def lifespan(app: FastAPI):
 
     for pdf_path in pdf_files:
         match = re.search(r'mpep-(\d+)', pdf_path.lower())
-        if match:
-            chapter_key = str(int(match.group(1)))
-        else:
-            chapter_key = "700"
+        chapter_key = str(int(match.group(1))) if match else "700"
         
         print(f"Parsing {pdf_path} (Normalized Chapter {chapter_key})...")
         reader = PdfReader(pdf_path)
@@ -129,20 +129,79 @@ def get_db():
 class CommentDB(Base):
     __tablename__ = "question_comments"
     id = Column(Integer, primary_key=True, index=True)
-    question_hash = Column(String, index=True)  # Unique identifier for the question
-    username = Column(String, default="Anonymous")
+    question_hash = Column(String, index=True)
+    username = Column(String, default="guest")
     content = Column(Text)
     timestamp = Column(String)
 
 class CommentCreate(BaseModel):
     question_hash: str
-    username: Optional[str] = "Anonymous"
+    username: Optional[str] = "guest"
     content: str
 
-# Create tables including the new comments table
+class QuestionHistoryDB(Base):
+    __tablename__ = "question_history"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, default="guest", index=True)
+    chapter = Column(String, default="Chapter 700")
+    context = Column(String)
+    stem = Column(Text)
+    options_json = Column(Text)
+    user_choice = Column(String)
+    correct_choice = Column(String)
+    explanation = Column(Text)
+    difficulty = Column(String)
+    is_correct = Column(Boolean)
+    timestamp = Column(String)
+
 Base.metadata.create_all(bind=engine)
 
-# Add comment endpoints
+class QuestionResponse(BaseModel):
+    chapter: str
+    chapter_context: str
+    question_stem: str
+    options: List[str]
+    correct_answer: str
+    explanation: str
+
+class HistoryCreate(BaseModel):
+    username: Optional[str] = "guest"
+    chapter: Optional[str] = "Chapter 700"
+    context: str
+    stem: str
+    options: List[str]
+    user_choice: str
+    correct_choice: str
+    explanation: str
+    difficulty: str
+    is_correct: bool
+
+class GoogleAuthSchema(BaseModel):
+    credential: str
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com")
+
+@app.post("/auth/google")
+def google_auth(data: GoogleAuthSchema):
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            data.credential, 
+            google_requests.Request(), 
+            GOOGLE_CLIENT_ID
+        )
+        name = idinfo.get("name", "User")
+        email = idinfo.get("email", "")
+        picture = idinfo.get("picture", "")
+        
+        return {
+            "status": "success",
+            "username": name,
+            "email": email,
+            "picture": picture
+        }
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid Google authentication token.")
+
 @app.get("/comments/{question_hash}")
 async def get_comments(question_hash: str, db: Session = Depends(get_db)):
     items = db.query(CommentDB).filter(CommentDB.question_hash == question_hash).order_by(CommentDB.id.desc()).all()
@@ -160,7 +219,7 @@ async def get_comments(question_hash: str, db: Session = Depends(get_db)):
 async def post_comment(comment: CommentCreate, db: Session = Depends(get_db)):
     db_comment = CommentDB(
         question_hash=comment.question_hash,
-        username=comment.username or "Anonymous",
+        username=comment.username or "guest",
         content=comment.content,
         timestamp=datetime.now().strftime("%I:%M:%S %p - %b %d")
     )
@@ -169,47 +228,24 @@ async def post_comment(comment: CommentCreate, db: Session = Depends(get_db)):
     db.refresh(db_comment)
     return {"status": "success", "id": db_comment.id}
 
-class QuestionHistoryDB(Base):
-    __tablename__ = "question_history"
-    id = Column(Integer, primary_key=True, index=True)
-    chapter = Column(String, default="Chapter 700")
-    context = Column(String)
-    stem = Column(Text)
-    options_json = Column(Text)
-    user_choice = Column(String)
-    correct_choice = Column(String)
-    explanation = Column(Text)
-    difficulty = Column(String)
-    is_correct = Column(Boolean)
-    timestamp = Column(String)
-
-Base.metadata.create_all(bind=engine)
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-class QuestionResponse(BaseModel):
-    chapter: str
-    chapter_context: str
-    question_stem: str
-    options: List[str]
-    correct_answer: str
-    explanation: str
-
-class HistoryCreate(BaseModel):
-    chapter: Optional[str] = "Chapter 700"
-    context: str
-    stem: str
-    options: List[str]
-    user_choice: str
-    correct_choice: str
-    explanation: str
-    difficulty: str
-    is_correct: bool
+@app.get("/community-questions")
+async def get_community_questions(db: Session = Depends(get_db)):
+    items = db.query(QuestionHistoryDB).order_by(QuestionHistoryDB.id.desc()).limit(15).all()
+    result = []
+    seen_stems = set()
+    for item in items:
+        if item.stem not in seen_stems:
+            seen_stems.add(item.stem)
+            result.append({
+                "chapter": item.chapter,
+                "context": item.context,
+                "stem": item.stem,
+                "options": json.loads(item.options_json),
+                "correct_choice": item.correct_choice,
+                "explanation": item.explanation,
+                "timestamp": item.timestamp
+            })
+    return result
 
 @app.get("/chapters")
 async def get_available_chapters():
@@ -324,8 +360,12 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
         raise HTTPException(status_code=500, detail=f"Failed generative synthesis: {str(e)}")
 
 @app.get("/spaced-repetition-questions", response_model=List[QuestionResponse])
-async def get_spaced_repetition_questions(db: Session = Depends(get_db)):
-    items = db.query(QuestionHistoryDB).order_by(
+async def get_spaced_repetition_questions(username: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(QuestionHistoryDB)
+    if username:
+        query = query.filter(QuestionHistoryDB.username == username.strip().lower())
+    
+    items = query.order_by(
         QuestionHistoryDB.is_correct.asc(),
         QuestionHistoryDB.id.asc()
     ).limit(10).all()
@@ -345,6 +385,7 @@ async def get_spaced_repetition_questions(db: Session = Depends(get_db)):
 @app.post("/history")
 async def save_history(item: HistoryCreate, db: Session = Depends(get_db)):
     db_item = QuestionHistoryDB(
+        username=item.username or "guest",
         chapter=item.chapter,
         context=item.context,
         stem=item.stem,
@@ -362,12 +403,17 @@ async def save_history(item: HistoryCreate, db: Session = Depends(get_db)):
     return {"status": "success", "id": db_item.id}
 
 @app.get("/history")
-async def get_history(db: Session = Depends(get_db)):
-    items = db.query(QuestionHistoryDB).order_by(QuestionHistoryDB.id.desc()).all()
+async def get_history(username: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(QuestionHistoryDB)
+    if username:
+        query = query.filter(QuestionHistoryDB.username == username.strip().lower())
+    
+    items = query.order_by(QuestionHistoryDB.id.desc()).all()
     result = []
     for item in items:
         result.append({
             "id": item.id,
+            "username": item.username or "guest",
             "chapter": item.chapter,
             "context": item.context,
             "stem": item.stem,
@@ -382,10 +428,13 @@ async def get_history(db: Session = Depends(get_db)):
     return result
 
 @app.delete("/history")
-async def clear_history(db: Session = Depends(get_db)):
-    db.query(QuestionHistoryDB).delete()
+async def clear_history(username: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(QuestionHistoryDB)
+    if username:
+        query = query.filter(QuestionHistoryDB.username == username.strip().lower())
+    query.delete(synchronize_session=False)
     db.commit()
-    return {"status": "success", "message": "History cleared from database."}
+    return {"status": "success", "message": "History cleared for user."}
 
 if __name__ == "__main__":
     import uvicorn
