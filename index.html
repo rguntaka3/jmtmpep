@@ -113,6 +113,9 @@
                             <span id="badge-context" class="text-xs bg-indigo-50 text-indigo-800 border border-indigo-200 px-3 py-1 rounded-full font-medium">
                                 Context
                             </span>
+                            <span id="badge-type" class="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-semibold uppercase">
+                                Procedural
+                            </span>
                             <span id="badge-difficulty" class="text-xs bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-full font-semibold uppercase">
                                 Easy
                             </span>
@@ -440,12 +443,26 @@
             }
         }
 
+        function updateTypeBadge(qType) {
+            const badge = document.getElementById("badge-type");
+            const isProcedural = (qType || "procedural").toLowerCase() === "procedural";
+            if (isProcedural) {
+                badge.innerText = "⚡ Procedural (Immediate Feedback)";
+                badge.className = "text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-semibold";
+            } else {
+                badge.innerText = "🧠 Substantive (Delayed Feedback)";
+                badge.className = "text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-semibold";
+            }
+        }
+
         function showAdaptiveNotice(message, type) {
             const banner = document.getElementById("adaptive-banner");
-            banner.innerText = message;
+            banner.innerHTML = message;
             banner.className = `p-3 rounded-xl text-xs font-semibold text-center ${
                 type === 'up' 
                     ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                    : type === 'info'
+                    ? 'bg-amber-50 text-amber-900 border border-amber-200'
                     : 'bg-rose-50 text-rose-800 border border-rose-200'
             }`;
             banner.classList.remove("hidden");
@@ -482,6 +499,7 @@
 
                 currentQuestion = data;
                 document.getElementById("badge-context").innerText = data.chapter_context;
+                updateTypeBadge(data.question_type);
                 document.getElementById("question-stem").innerText = data.question_stem;
 
                 if (isStudyPanelOpen && data.chapter) {
@@ -524,40 +542,63 @@
 
             const correctLetter = currentQuestion.correct_answer.trim().charAt(0).toUpperCase();
             const isCorrect = chosenLetter === correctLetter;
+            const isProcedural = (currentQuestion.question_type || "procedural").toLowerCase() === "procedural";
 
             const optionsContainer = document.getElementById("options-container");
             const buttons = optionsContainer.getElementsByTagName("button");
 
-            if (isCorrect) {
-                selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs sm:text-sm flex items-start gap-3";
-                score++;
-                consecutiveCorrect++;
+            if (isProcedural) {
+                // --- IMMEDIATE FEEDBACK (Shute 2008) ---
+                if (isCorrect) {
+                    selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs sm:text-sm flex items-start gap-3";
+                    score++;
+                    consecutiveCorrect++;
 
-                if (currentDifficulty === "easy" && consecutiveCorrect >= 2) {
-                    currentDifficulty = "medium";
-                    consecutiveCorrect = 0;
-                    showAdaptiveNotice("📈 2 Correct in a row! Upgraded to Medium difficulty.", "up");
-                } else if (currentDifficulty === "medium" && consecutiveCorrect >= 2) {
-                    currentDifficulty = "hard";
-                    consecutiveCorrect = 0;
-                    showAdaptiveNotice("🚀 2 Correct in a row! Upgraded to Hard difficulty.", "up");
-                }
-            } else {
-                selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-900 text-xs sm:text-sm flex items-start gap-3";
+                    if (currentDifficulty === "easy" && consecutiveCorrect >= 2) {
+                        currentDifficulty = "medium";
+                        consecutiveCorrect = 0;
+                        showAdaptiveNotice("📈 2 Correct in a row! Upgraded to Medium difficulty.", "up");
+                    } else if (currentDifficulty === "medium" && consecutiveCorrect >= 2) {
+                        currentDifficulty = "hard";
+                        consecutiveCorrect = 0;
+                        showAdaptiveNotice("🚀 2 Correct in a row! Upgraded to Hard difficulty.", "up");
+                    }
+                } else {
+                    selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-900 text-xs sm:text-sm flex items-start gap-3";
 
-                for (let btn of buttons) {
-                    if (btn.innerText.startsWith(correctLetter)) {
-                        btn.className = "w-full text-left p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs sm:text-sm flex items-start gap-3";
+                    for (let btn of buttons) {
+                        if (btn.innerText.startsWith(correctLetter)) {
+                            btn.className = "w-full text-left p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs sm:text-sm flex items-start gap-3";
+                        }
+                    }
+
+                    consecutiveCorrect = 0;
+                    if (currentDifficulty === "hard") {
+                        currentDifficulty = "medium";
+                        showAdaptiveNotice("⚠️ Incorrect on Hard. Reverting to Medium difficulty.", "down");
+                    } else if (currentDifficulty === "medium") {
+                        currentDifficulty = "easy";
+                        showAdaptiveNotice("⚠️ Incorrect on Medium. Reverting to Easy difficulty.", "down");
                     }
                 }
 
-                consecutiveCorrect = 0;
-                if (currentDifficulty === "hard") {
-                    currentDifficulty = "medium";
-                    showAdaptiveNotice("⚠️ Incorrect on Hard. Reverting to Medium difficulty.", "down");
-                } else if (currentDifficulty === "medium") {
-                    currentDifficulty = "easy";
-                    showAdaptiveNotice("⚠️ Incorrect on Medium. Reverting to Easy difficulty.", "down");
+                // Immediately reveal MPEP rationale box
+                document.getElementById("explanation-box").classList.remove("hidden");
+
+            } else {
+                // --- DELAYED FEEDBACK (Bjork & Bjork 2017) ---
+                selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-indigo-50 border-2 border-indigo-500 text-indigo-900 text-xs sm:text-sm flex items-start gap-3";
+
+                showAdaptiveNotice(
+                    "🧠 <strong>Substantive Reasoning Question</strong><br/>Feedback is delayed to enhance cognitive transfer and retention. Review full rationales in <em>My Review History</em>.", 
+                    "info"
+                );
+
+                if (isCorrect) {
+                    score++;
+                    consecutiveCorrect++;
+                } else {
+                    consecutiveCorrect = 0;
                 }
             }
 
@@ -571,6 +612,7 @@
                         username: getActiveUsername(),
                         chapter: authoritativeChapter,
                         context: currentQuestion.chapter_context,
+                        question_type: currentQuestion.question_type || "procedural",
                         stem: currentQuestion.question_stem,
                         options: currentQuestion.options,
                         user_choice: chosenLetter,
@@ -588,7 +630,6 @@
             updateDifficultyBadge();
             document.getElementById("score").innerText = score;
             document.getElementById("total").innerText = totalAnswered;
-            document.getElementById("explanation-box").classList.remove("hidden");
         }
 
         function switchModalView(view) {
@@ -725,11 +766,15 @@
                     const userFieldId = `comm-user-${index}`;
                     const contentFieldId = `comm-content-${index}`;
 
+                    const typeBadge = (q.question_type || 'procedural').toLowerCase() === 'procedural' 
+                        ? `<span class="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold">Procedural</span>`
+                        : `<span class="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-semibold">Substantive</span>`;
+
                     const card = document.createElement("div");
                     card.className = "bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs sm:text-sm space-y-3";
                     card.innerHTML = `
                         <div class="flex justify-between items-center text-xs">
-                            <span class="text-indigo-900 font-bold">${q.chapter} | ${q.context}</span>
+                            <span class="text-indigo-900 font-bold">${q.chapter} | ${q.context} ${typeBadge}</span>
                             <span class="text-slate-400 text-[11px]">${q.timestamp}</span>
                         </div>
                         <p class="text-slate-900 font-semibold leading-relaxed">${q.stem}</p>
@@ -789,6 +834,10 @@
                     ? `<span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-semibold">✓ Correct</span>`
                     : `<span class="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full font-semibold">✗ Incorrect</span>`;
 
+                const typeBadge = (item.question_type || 'procedural').toLowerCase() === 'procedural'
+                    ? `<span class="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-semibold">Procedural</span>`
+                    : `<span class="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-semibold">Substantive</span>`;
+
                 const qHash = hashCode(item.stem);
                 const commentsFeedId = `history-comments-${index}`;
                 const userFieldId = `history-user-${index}`;
@@ -796,7 +845,7 @@
 
                 card.innerHTML = `
                     <div class="flex justify-between items-center text-xs flex-wrap gap-2">
-                        <span class="text-indigo-900 font-bold">${item.chapter} | ${item.context} <span class="text-slate-400 font-normal">(@${item.username || 'guest'})</span></span>
+                        <span class="text-indigo-900 font-bold">${item.chapter} | ${item.context} ${typeBadge} <span class="text-slate-400 font-normal">(@${item.username || 'guest'})</span></span>
                         <div class="flex gap-2 items-center">
                             <span class="text-slate-400">${item.timestamp}</span>
                             ${badge}

@@ -3,7 +3,8 @@ import glob
 import random
 import re
 import json
-import mimetypes  
+import mimetypes
+import sqlite3
 from typing import List, Optional
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
@@ -58,8 +59,47 @@ def get_hash_vector(text: str, num_features: int = 2048) -> np.ndarray:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global chapter_memory
+
+    # --- Robust Auto-Migration for Render / SQLite Database ---
+    try:
+        db_path = "mpep_quiz.db"
+        if os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            # Check question_history columns
+            cursor.execute("PRAGMA table_info(question_history);")
+            history_cols = [col[1] for col in cursor.fetchall()]
+            if history_cols:
+                if "username" not in history_cols:
+                    print("Adding 'username' to question_history...")
+                    cursor.execute("ALTER TABLE question_history ADD COLUMN username TEXT DEFAULT 'guest';")
+                if "options_json" not in history_cols:
+                    print("Adding 'options_json' to question_history...")
+                    cursor.execute("ALTER TABLE question_history ADD COLUMN options_json TEXT DEFAULT '[]';")
+                if "chapter" not in history_cols:
+                    print("Adding 'chapter' to question_history...")
+                    cursor.execute("ALTER TABLE question_history ADD COLUMN chapter TEXT DEFAULT 'Chapter 700';")
+                if "question_type" not in history_cols:
+                    print("Adding 'question_type' to question_history...")
+                    cursor.execute("ALTER TABLE question_history ADD COLUMN question_type TEXT DEFAULT 'procedural';")
+                conn.commit()
+
+            # Check question_comments columns
+            cursor.execute("PRAGMA table_info(question_comments);")
+            comment_cols = [col[1] for col in cursor.fetchall()]
+            if comment_cols and "username" not in comment_cols:
+                print("Adding 'username' to question_comments...")
+                cursor.execute("ALTER TABLE question_comments ADD COLUMN username TEXT DEFAULT 'guest';")
+                conn.commit()
+
+            conn.close()
+    except Exception as migration_err:
+        print(f"Migration note: {migration_err}")
+    # ---------------------------------------------------------
+
     pdf_files = glob.glob("mpep-*.pdf")
-    
+
     if not pdf_files:
         print("⚠️ No MPEP PDFs found matching pattern 'mpep-*.pdf'.")
         yield
@@ -68,11 +108,11 @@ async def lifespan(app: FastAPI):
     for pdf_path in pdf_files:
         match = re.search(r'mpep-(\d+)', pdf_path.lower())
         chapter_key = str(int(match.group(1))) if match else "700"
-        
+
         print(f"Parsing {pdf_path} (Normalized Chapter {chapter_key})...")
         reader = PdfReader(pdf_path)
         raw_text_chunks = []
-        
+
         current_chunk = ""
         for page in reader.pages:
             text = page.extract_text()
@@ -145,6 +185,7 @@ class QuestionHistoryDB(Base):
     username = Column(String, default="guest", index=True)
     chapter = Column(String, default="Chapter 700")
     context = Column(String)
+    question_type = Column(String, default="procedural")
     stem = Column(Text)
     options_json = Column(Text)
     user_choice = Column(String)
@@ -159,6 +200,7 @@ Base.metadata.create_all(bind=engine)
 class QuestionResponse(BaseModel):
     chapter: str
     chapter_context: str
+    question_type: str
     question_stem: str
     options: List[str]
     correct_answer: str
@@ -168,6 +210,7 @@ class HistoryCreate(BaseModel):
     username: Optional[str] = "guest"
     chapter: Optional[str] = "Chapter 700"
     context: str
+    question_type: Optional[str] = "procedural"
     stem: str
     options: List[str]
     user_choice: str
@@ -239,6 +282,7 @@ async def get_community_questions(db: Session = Depends(get_db)):
             result.append({
                 "chapter": item.chapter,
                 "context": item.context,
+                "question_type": item.question_type or "procedural",
                 "stem": item.stem,
                 "options": json.loads(item.options_json),
                 "correct_choice": item.correct_choice,
@@ -287,23 +331,33 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
     top_indices = np.argsort(similarities)[-2:]
     combined_context = "\n---\n".join([chapter_memory[source_ch]["texts"][idx] for idx in top_indices])
     
+    # --- Decouple Question Type from Difficulty ---
+    target_type = random.choice(["procedural", "substantive"])
+    
+    type_instructions = {
+        "procedural": "Target Question Type: PROCEDURAL. Focus specifically on formal deadlines, rules, fee structures, form numbers, or filing steps.",
+        "substantive": "Target Question Type: SUBSTANTIVE. Focus specifically on legal interpretation, novelty, non-obviousness, 35 U.S.C. 101/102/103/112 law analysis, or complex factual application."
+    }[target_type]
+
     difficulty_instructions = {
-        "easy": "Difficulty: EASY. Focus on direct rule recall, definitions, or clear-cut procedural steps.",
-        "medium": "Difficulty: MEDIUM. Focus on standard rule application to a straightforward hypothetical scenario.",
-        "hard": "Difficulty: HARD. Create a complex, multi-step fact pattern with timelines or EXCEPT/NOT setups."
+        "easy": "Difficulty: EASY. Keep the scenario straightforward and clear-cut.",
+        "medium": "Difficulty: MEDIUM. Focus on standard rule application to a realistic hypothetical scenario.",
+        "hard": "Difficulty: HARD. Create a complex, multi-step fact pattern with timelines, exceptions, or EXCEPT/NOT setups."
     }.get(difficulty.lower(), "Difficulty: MEDIUM.")
 
     system_prompt = (
         "You are an expert Patent Attorney and an official USPTO exam writer.\n"
         f"Generate a multiple-choice question (MCQ) for the Patent Bar Exam strictly based on **Chapter {source_ch}** of the MPEP.\n\n"
-        f"{difficulty_instructions}\n\n"
+        f"{difficulty_instructions}\n"
+        f"{type_instructions}\n\n"
         "Requirements:\n"
         "1. Structure: Exactly 5 choices (A, B, C, D, E).\n"
-        f"2. Context Format: The `chapter_context` MUST explicitly cite an MPEP section or subsection belonging strictly to **Chapter {source_ch}** (e.g., MPEP § {source_ch}.01 – Specific Topic Title). DO NOT use section numbers from other chapters.\n"
+        f"2. Context Format: The `chapter_context` MUST explicitly cite an MPEP section or subsection belonging strictly to **Chapter {source_ch}** (e.g., MPEP § {source_ch}.01 – Specific Topic Title).\n"
         "3. Validation: Provide the precise MPEP section or rule citation inside the explanation matching this chapter.\n\n"
         "You MUST return your output as a raw JSON string matching this exact schema layout:\n"
         "{\n"
         f"  \"chapter_context\": \"MPEP § {source_ch}.XX – Topic Title\",\n"
+        f"  \"question_type\": \"{target_type}\",\n"
         "  \"question_stem\": \"The question text...\",\n"
         "  \"options\": [\"A. ...\", \"B. ...\", \"C. ...\", \"D. ...\", \"E. ...\"],\n"
         "  \"correct_answer\": \"The correct letter option (e.g., C)\",\n"
@@ -344,6 +398,7 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
         normalized_data = {
             "chapter": f"Chapter {source_ch}",
             "chapter_context": parsed_json.get("chapter_context") or f"MPEP § {source_ch}.01 – Topic Tested",
+            "question_type": target_type,
             "question_stem": parsed_json.get("question_stem") or "Question Text Missing",
             "options": parsed_json.get("options") or ["A. Error", "B. Error", "C. Error", "D. Error", "E. Error"],
             "correct_answer": parsed_json.get("correct_answer") or "A",
@@ -375,6 +430,7 @@ async def get_spaced_repetition_questions(username: Optional[str] = None, db: Se
         result.append(QuestionResponse(
             chapter=item.chapter,
             chapter_context=f"Review: {item.context}",
+            question_type=item.question_type or "procedural",
             question_stem=item.stem,
             options=json.loads(item.options_json),
             correct_answer=item.correct_choice,
@@ -388,6 +444,7 @@ async def save_history(item: HistoryCreate, db: Session = Depends(get_db)):
         username=item.username or "guest",
         chapter=item.chapter,
         context=item.context,
+        question_type=item.question_type or "procedural",
         stem=item.stem,
         options_json=json.dumps(item.options),
         user_choice=item.user_choice,
@@ -416,6 +473,7 @@ async def get_history(username: Optional[str] = None, db: Session = Depends(get_
             "username": item.username or "guest",
             "chapter": item.chapter,
             "context": item.context,
+            "question_type": item.question_type or "procedural",
             "stem": item.stem,
             "options": json.loads(item.options_json),
             "userChoice": item.user_choice,
