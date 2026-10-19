@@ -83,6 +83,9 @@ async def lifespan(app: FastAPI):
                 if "question_type" not in history_cols:
                     print("Adding 'question_type' to question_history...")
                     cursor.execute("ALTER TABLE question_history ADD COLUMN question_type TEXT DEFAULT 'procedural';")
+                if "time_spent" not in history_cols:
+                    print("Adding 'time_spent' to question_history...")
+                    cursor.execute("ALTER TABLE question_history ADD COLUMN time_spent INTEGER DEFAULT 0;")
                 conn.commit()
 
             # Check question_comments columns
@@ -193,6 +196,7 @@ class QuestionHistoryDB(Base):
     explanation = Column(Text)
     difficulty = Column(String)
     is_correct = Column(Boolean)
+    time_spent = Column(Integer, default=0)
     timestamp = Column(String)
 
 Base.metadata.create_all(bind=engine)
@@ -218,6 +222,7 @@ class HistoryCreate(BaseModel):
     explanation: str
     difficulty: str
     is_correct: bool
+    time_spent: Optional[int] = 0
 
 class GoogleAuthSchema(BaseModel):
     credential: str
@@ -331,7 +336,6 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
     top_indices = np.argsort(similarities)[-2:]
     combined_context = "\n---\n".join([chapter_memory[source_ch]["texts"][idx] for idx in top_indices])
     
-    # --- Decouple Question Type from Difficulty ---
     target_type = random.choice(["procedural", "substantive"])
     
     type_instructions = {
@@ -452,6 +456,7 @@ async def save_history(item: HistoryCreate, db: Session = Depends(get_db)):
         explanation=item.explanation,
         difficulty=item.difficulty,
         is_correct=item.is_correct,
+        time_spent=item.time_spent or 0,
         timestamp=datetime.now().strftime("%I:%M:%S %p")
     )
     db.add(db_item)
@@ -481,6 +486,7 @@ async def get_history(username: Optional[str] = None, db: Session = Depends(get_
             "explanation": item.explanation,
             "difficulty": item.difficulty,
             "isCorrect": item.is_correct,
+            "timeSpent": item.time_spent or 0,
             "timestamp": item.timestamp
         })
     return result

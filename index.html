@@ -8,10 +8,10 @@
     <!-- Google Identity Services SDK -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between font-sans">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between font-sans overflow-x-hidden">
 
     <!-- Header -->
-    <header class="bg-white border-b border-slate-200 py-4 px-6 shadow-xs sticky top-0 z-40">
+    <header class="bg-white border-b border-slate-200 py-2.5 px-6 shadow-xs sticky top-0 z-40">
         <div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-3">
             <h1 class="text-base sm:text-lg font-bold tracking-tight text-indigo-900 flex items-center gap-2 cursor-pointer" onclick="returnToLanding()">
                 ⚖️ USPTO Patent Bar Master Quiz 
@@ -28,14 +28,14 @@
                         </div>
                         <div class="g_id_signin" data-type="standard" data-size="medium"></div>
                     </div>
-                    <div id="user-badge" class="hidden flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700">
+                    <div id="user-badge" class="hidden flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1 rounded-lg text-xs font-semibold text-slate-700">
                         <img id="user-avatar" src="" class="w-5 h-5 rounded-full" alt="avatar" />
                         <span id="current-username-display" class="font-bold text-indigo-900"></span>
                         <button onclick="googleLogout()" class="ml-2 text-rose-600 hover:text-rose-800 underline cursor-pointer text-xs">Logout</button>
                     </div>
                 </div>
 
-                <button onclick="showHistoryView()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg border border-slate-300 font-medium flex items-center gap-1.5 cursor-pointer transition">
+                <button onclick="showHistoryView()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium flex items-center gap-1.5 cursor-pointer transition">
                     📜 My Review History (<span id="history-count" class="font-bold">0</span>)
                 </button>
                 <div id="stats" class="text-xs sm:text-sm text-slate-600 hidden font-medium">
@@ -46,10 +46,10 @@
     </header>
 
     <!-- Main Content Area -->
-    <main id="main-container" class="max-w-3xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300">
+    <main id="main-container" class="max-w-3xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-center transition-all duration-300">
         
         <!-- LANDING PAGE -->
-        <div id="landing-view" class="w-full space-y-6">
+        <div id="landing-view" class="w-full space-y-6 my-auto">
             <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
                 <div>
                     <h2 class="text-xl font-bold text-slate-900 mb-1">Quiz Session Setup</h2>
@@ -57,7 +57,7 @@
                 </div>
                 
                 <!-- Mode Selection Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div onclick="setMode('dynamic')" id="mode-card-dynamic" class="p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all">
                         <h3 class="text-sm font-bold text-indigo-900 mb-0.5">🎲 GenAI Practice</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">Generate fresh questions via RAG vector search.</p>
@@ -66,6 +66,11 @@
                     <div onclick="setMode('spaced')" id="mode-card-spaced" class="p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
                         <h3 class="text-sm font-bold text-slate-800 mb-0.5">🔄 Spaced Repetition</h3>
                         <p class="text-xs text-slate-500 leading-relaxed">Targeted review of past & missed questions.</p>
+                    </div>
+
+                    <div onclick="setMode('exam')" id="mode-card-exam" class="p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
+                        <h3 class="text-sm font-bold text-slate-800 mb-0.5">🎓 Full Exam (100 Qs / 3 Hrs)</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed">Simulated 3-hour official patent bar exam.</p>
                     </div>
                 </div>
 
@@ -104,55 +109,61 @@
             </div>
 
             <!-- Split Panel Container -->
-            <div id="split-layout" class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full transition-all duration-300">
+            <div id="split-layout" class="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full transition-all duration-300">
                 
                 <!-- Left Column: Quiz Card -->
-                <div id="quiz-card" class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-                    <div class="flex justify-between items-center pb-3 border-b border-slate-100 flex-wrap gap-2">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span id="badge-context" class="text-xs bg-indigo-50 text-indigo-800 border border-indigo-200 px-3 py-1 rounded-full font-medium">
-                                Context
-                            </span>
-                            <span id="badge-type" class="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-semibold uppercase">
-                                Procedural
-                            </span>
-                            <span id="badge-difficulty" class="text-xs bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-full font-semibold uppercase">
-                                Easy
-                            </span>
+                <div id="quiz-card" class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between max-h-[calc(100vh-110px)] overflow-y-auto">
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center pb-2 border-b border-slate-100 flex-wrap gap-1.5">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span id="badge-context" class="text-[11px] bg-indigo-50 text-indigo-800 border border-indigo-200 px-2.5 py-0.5 rounded-full font-medium">
+                                    Context
+                                </span>
+                                <span id="badge-type" class="text-[11px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold uppercase">
+                                    Procedural
+                                </span>
+                                <span id="badge-difficulty" class="text-[11px] bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 rounded-full font-semibold uppercase">
+                                    Easy
+                                </span>
+                                <span id="timer-badge" class="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold">
+                                    ⏱️ <span id="timer-display">03:00</span>
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleStudyPanel()" id="study-panel-btn" class="text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-lg font-medium transition cursor-pointer flex items-center gap-1">
+                                    📖 <span id="study-btn-text">Hide PDF</span>
+                                </button>
+                                <button onclick="returnToLanding()" class="text-[11px] text-slate-400 hover:text-slate-700 underline cursor-pointer">
+                                    End Session
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="toggleStudyPanel()" id="study-panel-btn" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1">
-                                📖 <span id="study-btn-text">Hide PDF</span>
-                            </button>
-                            <button onclick="returnToLanding()" class="text-xs text-slate-400 hover:text-slate-700 underline cursor-pointer">
-                                End Session
-                            </button>
+
+                        <div id="adaptive-banner" class="hidden p-2 rounded-xl text-xs font-semibold text-center transition-all"></div>
+
+                        <h2 id="question-stem" class="text-xs sm:text-sm font-semibold text-slate-900 leading-relaxed">
+                            Loading question...
+                        </h2>
+
+                        <!-- Compact Choice List -->
+                        <div id="options-container" class="space-y-1.5"></div>
+
+                        <div id="explanation-box" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1 max-h-40 overflow-y-auto">
+                            <h3 class="text-[10px] font-bold uppercase tracking-wider text-indigo-900">MPEP Rationale & Citation</h3>
+                            <p id="explanation-text" class="text-xs text-slate-700 leading-relaxed whitespace-pre-line"></p>
                         </div>
-                    </div>
-
-                    <div id="adaptive-banner" class="hidden p-3 rounded-xl text-xs font-semibold text-center transition-all"></div>
-
-                    <h2 id="question-stem" class="text-base sm:text-lg font-semibold text-slate-900 leading-relaxed">
-                        Loading question...
-                    </h2>
-
-                    <div id="options-container" class="space-y-2.5"></div>
-
-                    <div id="explanation-box" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1.5">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-900">MPEP Rationale & Citation</h3>
-                        <p id="explanation-text" class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line"></p>
                     </div>
 
                     <div class="flex justify-end pt-2 border-t border-slate-100">
-                        <button id="next-btn" onclick="fetchNewQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl transition duration-200 cursor-pointer shadow-xs text-sm">
+                        <button id="next-btn" onclick="fetchNewQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition duration-200 cursor-pointer shadow-xs text-xs">
                             Next Question 🚀
                         </button>
                     </div>
                 </div>
 
                 <!-- Right Column: Local PDF.js Study Panel -->
-                <div id="pdf-study-panel" class="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col h-[650px] overflow-hidden">
-                    <div class="flex justify-between items-center px-4 py-3 bg-slate-50 border-b border-slate-200 gap-2">
+                <div id="pdf-study-panel" class="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col h-[calc(100vh-110px)] overflow-hidden">
+                    <div class="flex justify-between items-center px-4 py-2 bg-slate-50 border-b border-slate-200 gap-2">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5 shrink-0">
                             📄 Chapter <span id="pdf-chapter-label">Chapter</span> Viewer
                         </h3>
@@ -197,7 +208,7 @@
 
     </main>
 
-    <footer class="text-center py-3 text-xs text-slate-400 border-t border-slate-200 bg-white mt-auto">
+    <footer class="text-center py-2 text-[11px] text-slate-400 border-t border-slate-200 bg-white mt-auto">
         Powered by FastAPI, SQLite Database, and Groq LLM.
     </footer>
 
@@ -210,7 +221,7 @@
         let isAnswered = false;
         let selectedChapters = ["700"];
         let chapterFilesMap = {};
-        let sessionMode = 'dynamic'; 
+        let sessionMode = 'dynamic'; // 'dynamic', 'spaced', 'exam'
         let spacedQueue = [];
         let isStudyPanelOpen = true; 
         
@@ -219,6 +230,14 @@
         let questionHistory = [];
         let activeFilter = 'all';
         let modalViewMode = 'list';
+
+        // Timer State (180 seconds countdown per question)
+        let questionSecondsRemaining = 180;
+        let questionTimerInterval = null;
+        let examSecondsRemaining = 10800; // 3 Hours total for exam mode
+        let examTimerInterval = null;
+        let examTotalQuestions = 100;
+        let examCurrentIndex = 0;
 
         const API_BASE = "";
 
@@ -285,16 +304,22 @@
             sessionMode = mode;
             const cardDyn = document.getElementById("mode-card-dynamic");
             const cardSpaced = document.getElementById("mode-card-spaced");
+            const cardExam = document.getElementById("mode-card-exam");
             const boxChapters = document.getElementById("chapter-selection-box");
+
+            [cardDyn, cardSpaced, cardExam].forEach(c => {
+                c.className = "p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300";
+            });
 
             if (mode === 'dynamic') {
                 cardDyn.className = "p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all";
-                cardSpaced.className = "p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300";
                 boxChapters.classList.remove("hidden");
-            } else {
+            } else if (mode === 'spaced') {
                 cardSpaced.className = "p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all";
-                cardDyn.className = "p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300";
                 boxChapters.classList.add("hidden");
+            } else if (mode === 'exam') {
+                cardExam.className = "p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all";
+                boxChapters.classList.remove("hidden");
             }
         }
 
@@ -342,7 +367,7 @@
         }
 
         async function startQuiz() {
-            if (sessionMode === 'dynamic') {
+            if (sessionMode === 'dynamic' || sessionMode === 'exam') {
                 const checkboxes = document.querySelectorAll('input[name="chapter"]:checked');
                 selectedChapters = Array.from(checkboxes).map(cb => cb.value);
 
@@ -366,25 +391,119 @@
             consecutiveCorrect = 0;
             score = 0;
             totalAnswered = 0;
+            examCurrentIndex = 0;
+            examSecondsRemaining = 10800; // 3 hours
 
             document.getElementById("landing-view").classList.add("hidden");
             document.getElementById("history-view").classList.add("hidden");
             document.getElementById("quiz-view").classList.remove("hidden");
             document.getElementById("stats").classList.remove("hidden");
-            document.getElementById("main-container").className = "max-w-7xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300";
+            document.getElementById("main-container").className = "max-w-7xl w-full mx-auto p-2 sm:p-4 flex-grow flex flex-col justify-center transition-all duration-300";
             document.getElementById("score").innerText = "0";
             document.getElementById("total").innerText = "0";
             
+            if (sessionMode === 'exam') {
+                startExamCountdown();
+            }
+
             updateDifficultyBadge();
             fetchNewQuestion();
         }
 
+        function startExamCountdown() {
+            if (examTimerInterval) clearInterval(examTimerInterval);
+            examTimerInterval = setInterval(() => {
+                examSecondsRemaining--;
+                if (examSecondsRemaining <= 0) {
+                    clearInterval(examTimerInterval);
+                    alert("⏰ Time's up! Your 3-hour exam session has ended.");
+                    returnToLanding();
+                }
+            }, 1000);
+        }
+
+        function startQuestionTimer() {
+            questionSecondsRemaining = 180; // 180 seconds countdown
+            if (questionTimerInterval) clearInterval(questionTimerInterval);
+
+            document.getElementById("timer-display").innerText = "03:00";
+
+            questionTimerInterval = setInterval(() => {
+                questionSecondsRemaining--;
+                const mins = Math.floor(questionSecondsRemaining / 60).toString().padStart(2, '0');
+                const secs = (questionSecondsRemaining % 60).toString().padStart(2, '0');
+                
+                document.getElementById("timer-display").innerText = `${mins}:${secs}`;
+
+                if (questionSecondsRemaining <= 0) {
+                    clearInterval(questionTimerInterval);
+                    handleQuestionTimeout();
+                }
+            }, 1000);
+        }
+
+        async function handleQuestionTimeout() {
+            if (isAnswered) return;
+            isAnswered = true;
+            totalAnswered++;
+
+            const correctLetter = currentQuestion.correct_answer.trim().charAt(0).toUpperCase();
+            const isProcedural = sessionMode !== 'exam' && (currentQuestion.question_type || "procedural").toLowerCase() === "procedural";
+
+            const optionsContainer = document.getElementById("options-container");
+            const buttons = optionsContainer.getElementsByTagName("button");
+
+            for (let btn of buttons) {
+                if (btn.innerText.startsWith(correctLetter)) {
+                    btn.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-start gap-2.5";
+                } else {
+                    btn.className = "w-full text-left py-2 px-3 rounded-lg bg-slate-100 text-slate-400 text-xs flex items-start gap-2.5";
+                }
+                btn.disabled = true;
+            }
+
+            showAdaptiveNotice("⏰ Time expired (180 seconds limit reached).", "down");
+            if (isProcedural || sessionMode !== 'exam') {
+                document.getElementById("explanation-box").classList.remove("hidden");
+            }
+
+            try {
+                await fetch(`${API_BASE}/history`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        username: getActiveUsername(),
+                        chapter: currentQuestion.chapter || "Chapter 700",
+                        context: currentQuestion.chapter_context,
+                        question_type: currentQuestion.question_type || "procedural",
+                        stem: currentQuestion.question_stem,
+                        options: currentQuestion.options,
+                        user_choice: "TIMEOUT",
+                        correct_choice: correctLetter,
+                        explanation: currentQuestion.explanation,
+                        difficulty: currentDifficulty,
+                        is_correct: false,
+                        time_spent: 180
+                    })
+                });
+                await fetchHistoryCount();
+            } catch (err) {
+                console.error("Failed to save timeout history:", err);
+            }
+
+            document.getElementById("score").innerText = score;
+            document.getElementById("total").innerText = totalAnswered;
+        }
+
         function returnToLanding() {
+            if (questionTimerInterval) clearInterval(questionTimerInterval);
+            if (examTimerInterval) clearInterval(examTimerInterval);
+
             document.getElementById("quiz-view").classList.add("hidden");
             document.getElementById("history-view").classList.add("hidden");
             document.getElementById("stats").classList.add("hidden");
             document.getElementById("landing-view").classList.remove("hidden");
-            document.getElementById("main-container").className = "max-w-3xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col justify-center my-auto transition-all duration-300";
+            document.getElementById("main-container").className = "max-w-3xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-center transition-all duration-300";
             
             fetchHistoryCount();
             loadCommunityDiscussions();
@@ -395,7 +514,7 @@
             document.getElementById("quiz-view").classList.add("hidden");
             document.getElementById("stats").classList.add("hidden");
             document.getElementById("history-view").classList.remove("hidden");
-            document.getElementById("main-container").className = "max-w-4xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col my-auto transition-all duration-300";
+            document.getElementById("main-container").className = "max-w-4xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col transition-all duration-300";
             document.getElementById("history-user-label").innerText = currentUser ? currentUser.username : "guest";
             
             await fetchHistoryCount();
@@ -410,7 +529,7 @@
 
             if (isStudyPanelOpen) {
                 panel.classList.remove("hidden");
-                splitLayout.className = "grid grid-cols-1 lg:grid-cols-2 gap-6 w-full transition-all duration-300";
+                splitLayout.className = "grid grid-cols-1 lg:grid-cols-2 gap-4 w-full transition-all duration-300";
                 btnText.innerText = "Hide PDF";
 
                 let activeCh = "700";
@@ -426,7 +545,7 @@
                 document.getElementById("pdf-iframe").src = `${window.location.origin}/viewer/web/viewer.html?file=${pdfUrl}#pagemode=none`;
             } else {
                 panel.classList.add("hidden");
-                splitLayout.className = "grid grid-cols-1 gap-6 w-full transition-all duration-300";
+                splitLayout.className = "grid grid-cols-1 gap-4 w-full transition-all duration-300";
                 btnText.innerText = "View PDF";
             }
         }
@@ -435,11 +554,11 @@
             const badge = document.getElementById("badge-difficulty");
             badge.innerText = currentDifficulty;
             if (currentDifficulty === "easy") {
-                badge.className = "text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-semibold uppercase";
+                badge.className = "text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold uppercase";
             } else if (currentDifficulty === "medium") {
-                badge.className = "text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-semibold uppercase";
+                badge.className = "text-[11px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-semibold uppercase";
             } else if (currentDifficulty === "hard") {
-                badge.className = "text-xs bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full font-semibold uppercase";
+                badge.className = "text-[11px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-semibold uppercase";
             }
         }
 
@@ -447,18 +566,18 @@
             const badge = document.getElementById("badge-type");
             const isProcedural = (qType || "procedural").toLowerCase() === "procedural";
             if (isProcedural) {
-                badge.innerText = "⚡ Procedural (Immediate Feedback)";
-                badge.className = "text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-semibold";
+                badge.innerText = "⚡ Procedural";
+                badge.className = "text-[11px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold";
             } else {
-                badge.innerText = "🧠 Substantive (Delayed Feedback)";
-                badge.className = "text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-semibold";
+                badge.innerText = "🧠 Substantive";
+                badge.className = "text-[11px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-semibold";
             }
         }
 
         function showAdaptiveNotice(message, type) {
             const banner = document.getElementById("adaptive-banner");
             banner.innerHTML = message;
-            banner.className = `p-3 rounded-xl text-xs font-semibold text-center ${
+            banner.className = `p-2 rounded-xl text-xs font-semibold text-center ${
                 type === 'up' 
                     ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
                     : type === 'info'
@@ -469,6 +588,15 @@
         }
 
         async function fetchNewQuestion() {
+            if (sessionMode === 'exam') {
+                examCurrentIndex++;
+                if (examCurrentIndex > examTotalQuestions) {
+                    alert(`🎓 Full Exam Completed!\nFinal Score: ${score} / ${examTotalQuestions}`);
+                    returnToLanding();
+                    return;
+                }
+            }
+
             const loadingState = document.getElementById("loading-state");
             const quizCard = document.getElementById("quiz-card");
             const explanationBox = document.getElementById("explanation-box");
@@ -498,7 +626,13 @@
                 }
 
                 currentQuestion = data;
-                document.getElementById("badge-context").innerText = data.chapter_context;
+                
+                if (sessionMode === 'exam') {
+                    document.getElementById("badge-context").innerText = `Exam Q ${examCurrentIndex}/${examTotalQuestions} | ${data.chapter_context}`;
+                } else {
+                    document.getElementById("badge-context").innerText = data.chapter_context;
+                }
+
                 updateTypeBadge(data.question_type);
                 document.getElementById("question-stem").innerText = data.question_stem;
 
@@ -516,14 +650,16 @@
                 data.options.forEach(optText => {
                     const optLetter = optText.trim().charAt(0).toUpperCase();
                     const button = document.createElement("button");
-                    button.className = "w-full text-left p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs sm:text-sm transition flex items-start gap-3 cursor-pointer";
+                    button.className = "w-full text-left py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs transition flex items-start gap-2.5 cursor-pointer";
                     button.innerHTML = `<span class="font-bold text-indigo-600">${optLetter}.</span> <span class="flex-grow">${optText.substring(3)}</span>`;
                     button.onclick = () => selectOption(button, optLetter);
                     optionsContainer.appendChild(button);
                 });
 
                 document.getElementById("explanation-text").innerText = data.explanation;
-                nextBtn.innerText = "Next Question";
+                nextBtn.innerText = sessionMode === 'exam' && examCurrentIndex === examTotalQuestions ? "Finish Exam 🏁" : "Next Question 🚀";
+
+                startQuestionTimer();
 
             } catch (err) {
                 console.error(err);
@@ -540,66 +676,38 @@
             isAnswered = true;
             totalAnswered++;
 
+            if (questionTimerInterval) clearInterval(questionTimerInterval);
+            const timeSpent = 180 - questionSecondsRemaining;
+
             const correctLetter = currentQuestion.correct_answer.trim().charAt(0).toUpperCase();
             const isCorrect = chosenLetter === correctLetter;
-            const isProcedural = (currentQuestion.question_type || "procedural").toLowerCase() === "procedural";
+            const isProcedural = sessionMode !== 'exam' && (currentQuestion.question_type || "procedural").toLowerCase() === "procedural";
 
             const optionsContainer = document.getElementById("options-container");
             const buttons = optionsContainer.getElementsByTagName("button");
 
-            if (isProcedural) {
-                // --- IMMEDIATE FEEDBACK (Shute 2008) ---
+            if (sessionMode === 'exam') {
+                selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-indigo-50 border-2 border-indigo-500 text-indigo-900 text-xs flex items-start gap-2.5";
+                if (isCorrect) score++;
+            } else if (isProcedural) {
                 if (isCorrect) {
-                    selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs sm:text-sm flex items-start gap-3";
+                    selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs flex items-start gap-2.5";
                     score++;
                     consecutiveCorrect++;
-
-                    if (currentDifficulty === "easy" && consecutiveCorrect >= 2) {
-                        currentDifficulty = "medium";
-                        consecutiveCorrect = 0;
-                        showAdaptiveNotice("📈 2 Correct in a row! Upgraded to Medium difficulty.", "up");
-                    } else if (currentDifficulty === "medium" && consecutiveCorrect >= 2) {
-                        currentDifficulty = "hard";
-                        consecutiveCorrect = 0;
-                        showAdaptiveNotice("🚀 2 Correct in a row! Upgraded to Hard difficulty.", "up");
-                    }
                 } else {
-                    selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-900 text-xs sm:text-sm flex items-start gap-3";
-
+                    selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-rose-50 border-2 border-rose-500 text-rose-900 text-xs flex items-start gap-2.5";
                     for (let btn of buttons) {
                         if (btn.innerText.startsWith(correctLetter)) {
-                            btn.className = "w-full text-left p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs sm:text-sm flex items-start gap-3";
+                            btn.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-start gap-2.5";
                         }
                     }
-
                     consecutiveCorrect = 0;
-                    if (currentDifficulty === "hard") {
-                        currentDifficulty = "medium";
-                        showAdaptiveNotice("⚠️ Incorrect on Hard. Reverting to Medium difficulty.", "down");
-                    } else if (currentDifficulty === "medium") {
-                        currentDifficulty = "easy";
-                        showAdaptiveNotice("⚠️ Incorrect on Medium. Reverting to Easy difficulty.", "down");
-                    }
                 }
-
-                // Immediately reveal MPEP rationale box
                 document.getElementById("explanation-box").classList.remove("hidden");
-
             } else {
-                // --- DELAYED FEEDBACK (Bjork & Bjork 2017) ---
-                selectedButton.className = "w-full text-left p-3.5 rounded-xl bg-indigo-50 border-2 border-indigo-500 text-indigo-900 text-xs sm:text-sm flex items-start gap-3";
-
-                showAdaptiveNotice(
-                    "🧠 <strong>Substantive Reasoning Question</strong><br/>Feedback is delayed to enhance cognitive transfer and retention. Review full rationales in <em>My Review History</em>.", 
-                    "info"
-                );
-
-                if (isCorrect) {
-                    score++;
-                    consecutiveCorrect++;
-                } else {
-                    consecutiveCorrect = 0;
-                }
+                selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-indigo-50 border-2 border-indigo-500 text-indigo-900 text-xs flex items-start gap-2.5";
+                showAdaptiveNotice("🧠 Substantive Question: Feedback delayed to review in History.", "info");
+                if (isCorrect) score++;
             }
 
             const authoritativeChapter = currentQuestion.chapter || "Chapter 700";
@@ -619,7 +727,8 @@
                         correct_choice: correctLetter,
                         explanation: currentQuestion.explanation,
                         difficulty: currentDifficulty,
-                        is_correct: isCorrect
+                        is_correct: isCorrect,
+                        time_spent: timeSpent
                     })
                 });
                 await fetchHistoryCount();
@@ -838,6 +947,8 @@
                     ? `<span class="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-semibold">Procedural</span>`
                     : `<span class="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-semibold">Substantive</span>`;
 
+                const timeSpentStr = item.timeSpent ? `⏱️ ${item.timeSpent}s spent` : '';
+
                 const qHash = hashCode(item.stem);
                 const commentsFeedId = `history-comments-${index}`;
                 const userFieldId = `history-user-${index}`;
@@ -847,6 +958,7 @@
                     <div class="flex justify-between items-center text-xs flex-wrap gap-2">
                         <span class="text-indigo-900 font-bold">${item.chapter} | ${item.context} ${typeBadge} <span class="text-slate-400 font-normal">(@${item.username || 'guest'})</span></span>
                         <div class="flex gap-2 items-center">
+                            <span class="text-slate-400">${timeSpentStr}</span>
                             <span class="text-slate-400">${item.timestamp}</span>
                             ${badge}
                         </div>
