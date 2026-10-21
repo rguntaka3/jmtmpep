@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MPEP Patent Bar Master Quiz - Study Mode</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- Google Identity Services SDK -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between font-sans overflow-x-hidden">
@@ -15,10 +14,9 @@
         <div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-3">
             <h1 class="text-base sm:text-lg font-bold tracking-tight text-indigo-900 flex items-center gap-2 cursor-pointer" onclick="returnToLanding()">
                 ⚖️ USPTO Patent Bar Master Quiz 
-                <span class="hidden sm:inline-block text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 font-medium">Study & Quiz Edition</span>
+                <span class="hidden sm:inline-block text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 font-medium">Kirkpatrick Evaluation Edition</span>
             </h1>
             <div id="header-actions" class="flex items-center gap-3 flex-wrap">
-                <!-- Google SSO Widget Container / User Badge -->
                 <div id="auth-container" class="flex items-center gap-2">
                     <div id="google-login-btn-wrapper" class="hidden">
                         <div id="g_id_onload"
@@ -36,7 +34,7 @@
                 </div>
 
                 <button onclick="showHistoryView()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium flex items-center gap-1.5 cursor-pointer transition">
-                    📜 My Review History (<span id="history-count" class="font-bold">0</span>)
+                    📜 Review & Analytics (<span id="history-count" class="font-bold">0</span>)
                 </button>
                 <div id="stats" class="text-xs sm:text-sm text-slate-600 hidden font-medium">
                     Score: <span id="score" class="text-emerald-600 font-bold">0</span> / <span id="total">0</span>
@@ -53,36 +51,41 @@
             <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
                 <div>
                     <h2 class="text-xl font-bold text-slate-900 mb-1">Quiz Session Setup</h2>
-                    <p class="text-sm text-slate-500">Select your preferred training mode and target MPEP chapters.</p>
+                    <p class="text-sm text-slate-500">Select training mode, baseline testing, or post-exam outcome reporting.</p>
                 </div>
                 
                 <!-- Mode Selection Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div onclick="setMode('dynamic')" id="mode-card-dynamic" class="p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all">
-                        <h3 class="text-sm font-bold text-indigo-900 mb-0.5">🎲 GenAI Practice</h3>
-                        <p class="text-xs text-slate-500 leading-relaxed">Generate fresh questions via RAG vector search.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div onclick="setMode('dynamic')" id="mode-card-dynamic" class="p-3.5 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all">
+                        <h3 class="text-xs font-bold text-indigo-900 mb-0.5">🎲 GenAI Practice</h3>
+                        <p class="text-[11px] text-slate-500">Fresh RAG practice questions.</p>
                     </div>
 
-                    <div onclick="setMode('spaced')" id="mode-card-spaced" class="p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
-                        <h3 class="text-sm font-bold text-slate-800 mb-0.5">🔄 Spaced Repetition</h3>
-                        <p class="text-xs text-slate-500 leading-relaxed">Targeted review of past & missed questions.</p>
+                    <div onclick="setMode('spaced')" id="mode-card-spaced" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
+                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">🔄 Spaced Repetition</h3>
+                        <p class="text-[11px] text-slate-500">Targeted review of missed items.</p>
                     </div>
 
-                    <div onclick="setMode('exam')" id="mode-card-exam" class="p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
-                        <h3 class="text-sm font-bold text-slate-800 mb-0.5">🎓 Full Exam (100 Qs / 3 Hrs)</h3>
-                        <p class="text-xs text-slate-500 leading-relaxed">Simulated 3-hour official patent bar exam.</p>
+                    <div onclick="setMode('baseline')" id="mode-card-baseline" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
+                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">🎯 Diagnostic Baseline</h3>
+                        <p class="text-[11px] text-slate-500">Initial assessment & bi-weekly check.</p>
+                    </div>
+
+                    <div onclick="setMode('exam')" id="mode-card-exam" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
+                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">🎓 Full Exam (100 Qs / 3 Hrs)</h3>
+                        <p class="text-[11px] text-slate-500">Simulated 3-hr bar exam + Survey.</p>
                     </div>
                 </div>
 
                 <!-- Chapter Selection Grid -->
                 <div id="chapter-selection-box" class="space-y-2">
                     <label class="block text-xs font-bold uppercase tracking-wider text-indigo-900">Target MPEP Chapters</label>
-                    <div id="chapter-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                        <div class="text-xs text-slate-400 py-4">Loading available chapters from server...</div>
+                    <div id="chapter-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-40 overflow-y-auto pr-1">
+                        <div class="text-xs text-slate-400 py-2">Loading chapters...</div>
                     </div>
                 </div>
 
-                <button onclick="startQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition duration-200 cursor-pointer shadow-sm shadow-indigo-600/20 text-sm">
+                <button onclick="startQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition duration-200 cursor-pointer shadow-sm text-sm">
                     Start Session 🚀
                 </button>
             </div>
@@ -99,6 +102,15 @@
                     <p class="text-xs text-slate-400 italic text-center py-6">Loading community discussions...</p>
                 </div>
             </div>
+
+            <!-- Level 4 Result Reporting Card -->
+            <div class="bg-indigo-900 text-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
+                <h3 class="text-base font-bold flex items-center gap-2">🏆 Official Patent Bar Exam Follow-Up (Level 4 Results)</h3>
+                <p class="text-xs text-indigo-200 leading-relaxed">Took the real USPTO Patent Bar Exam? Report your real-world outcome to help measure platform efficacy.</p>
+                <button onclick="openResultSurveyModal()" class="bg-white text-indigo-900 hover:bg-indigo-50 font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer">
+                    Submit Real-World Exam Outcome 📝
+                </button>
+            </div>
         </div>
 
         <!-- QUIZ & STUDY MODE WRAPPER -->
@@ -108,44 +120,24 @@
                 <p class="mt-4 text-slate-500 text-xs font-medium tracking-wide">Synthesizing MPEP question...</p>
             </div>
 
-            <!-- Split Panel Container -->
             <div id="split-layout" class="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full transition-all duration-300">
-                
-                <!-- Left Column: Quiz Card -->
                 <div id="quiz-card" class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between max-h-[calc(100vh-110px)] overflow-y-auto">
                     <div class="space-y-3">
                         <div class="flex justify-between items-center pb-2 border-b border-slate-100 flex-wrap gap-1.5">
                             <div class="flex flex-wrap items-center gap-1.5">
-                                <span id="badge-context" class="text-[11px] bg-indigo-50 text-indigo-800 border border-indigo-200 px-2.5 py-0.5 rounded-full font-medium">
-                                    Context
-                                </span>
-                                <span id="badge-type" class="text-[11px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold uppercase">
-                                    Procedural
-                                </span>
-                                <span id="badge-difficulty" class="text-[11px] bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 rounded-full font-semibold uppercase">
-                                    Easy
-                                </span>
-                                <span id="timer-badge" class="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold">
-                                    ⏱️ <span id="timer-display">03:00</span>
-                                </span>
+                                <span id="badge-context" class="text-[11px] bg-indigo-50 text-indigo-800 border border-indigo-200 px-2.5 py-0.5 rounded-full font-medium">Context</span>
+                                <span id="badge-type" class="text-[11px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold uppercase">Procedural</span>
+                                <span id="badge-difficulty" class="text-[11px] bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 rounded-full font-semibold uppercase">Easy</span>
+                                <span id="timer-badge" class="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold">⏱️ <span id="timer-display">03:00</span></span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button onclick="toggleStudyPanel()" id="study-panel-btn" class="text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-lg font-medium transition cursor-pointer flex items-center gap-1">
-                                    📖 <span id="study-btn-text">Hide PDF</span>
-                                </button>
-                                <button onclick="returnToLanding()" class="text-[11px] text-slate-400 hover:text-slate-700 underline cursor-pointer">
-                                    End Session
-                                </button>
+                                <button onclick="toggleStudyPanel()" id="study-panel-btn" class="text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-lg font-medium transition cursor-pointer">📖 <span id="study-btn-text">Hide PDF</span></button>
+                                <button onclick="returnToLanding()" class="text-[11px] text-slate-400 hover:text-slate-700 underline cursor-pointer">End Session</button>
                             </div>
                         </div>
 
                         <div id="adaptive-banner" class="hidden p-2 rounded-xl text-xs font-semibold text-center transition-all"></div>
-
-                        <h2 id="question-stem" class="text-xs sm:text-sm font-semibold text-slate-900 leading-relaxed">
-                            Loading question...
-                        </h2>
-
-                        <!-- Compact Choice List -->
+                        <h2 id="question-stem" class="text-xs sm:text-sm font-semibold text-slate-900 leading-relaxed">Loading question...</h2>
                         <div id="options-container" class="space-y-1.5"></div>
 
                         <div id="explanation-box" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1 max-h-40 overflow-y-auto">
@@ -155,37 +147,45 @@
                     </div>
 
                     <div class="flex justify-end pt-2 border-t border-slate-100">
-                        <button id="next-btn" onclick="fetchNewQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition duration-200 cursor-pointer shadow-xs text-xs">
-                            Next Question 🚀
-                        </button>
+                        <button id="next-btn" onclick="fetchNewQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition duration-200 cursor-pointer shadow-xs text-xs">Next Question 🚀</button>
                     </div>
                 </div>
 
-                <!-- Right Column: Local PDF.js Study Panel -->
                 <div id="pdf-study-panel" class="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col h-[calc(100vh-110px)] overflow-hidden">
                     <div class="flex justify-between items-center px-4 py-2 bg-slate-50 border-b border-slate-200 gap-2">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5 shrink-0">
-                            📄 Chapter <span id="pdf-chapter-label">Chapter</span> Viewer
-                        </h3>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5 shrink-0">📄 Chapter <span id="pdf-chapter-label">Chapter</span> Viewer</h3>
                         <button onclick="toggleStudyPanel()" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer shrink-0 p-1">✕</button>
                     </div>
                     <iframe id="pdf-iframe" src="" class="w-full flex-grow bg-white border-0" title="MPEP Chapter PDF"></iframe>
                 </div>
-
             </div>
         </div>
 
-        <!-- HISTORY & DISCUSSION VIEW -->
+        <!-- HISTORY & ANALYTICS VIEW -->
         <div id="history-view" class="hidden w-full space-y-6">
             <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
                 <div class="flex justify-between items-center border-b border-slate-200 pb-4 flex-wrap gap-4">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">Review History & Discussion Threads</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">Inspect historical question logs, performance analytics, and community peer discussions for user: <span id="history-user-label" class="font-bold text-indigo-900"></span>.</p>
+                        <h2 class="text-xl font-bold text-slate-900">Performance Analytics & Review History</h2>
+                        <p class="text-xs sm:text-sm text-slate-500">Kirkpatrick Level 3 Behavior Analytics and session history for: <span id="history-user-label" class="font-bold text-indigo-900"></span>.</p>
                     </div>
-                    <button onclick="returnToLanding()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer shadow-xs">
-                        ← Back to Dashboard
-                    </button>
+                    <button onclick="returnToLanding()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer shadow-xs">← Back to Dashboard</button>
+                </div>
+
+                <!-- Analytics Dashboard Card -->
+                <div id="behavior-analytics-box" class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-indigo-50/60 border border-indigo-100 p-4 rounded-xl text-xs">
+                    <div>
+                        <span class="text-slate-500 block">Weighted Accuracy (Difficulty Adjusted)</span>
+                        <span id="analytics-weighted-acc" class="text-base font-bold text-indigo-900">0.0%</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Total Attempt Volume</span>
+                        <span id="analytics-total-attempts" class="text-base font-bold text-indigo-900">0</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Avg Response Speed</span>
+                        <span id="analytics-avg-speed" class="text-base font-bold text-indigo-900">0.0s</span>
+                    </div>
                 </div>
 
                 <div class="flex justify-between items-center text-xs flex-wrap gap-3">
@@ -205,8 +205,85 @@
                 <div id="history-list" class="space-y-4"></div>
             </div>
         </div>
-
     </main>
+
+    <!-- REACTION SURVEY MODAL -->
+    <div id="reaction-modal" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-lg font-bold text-indigo-900">🎓 Kirkpatrick Level 1: Reaction Survey</h3>
+            <p class="text-xs text-slate-500">Please rate platform features based on your full exam experience (1 = Poor, 5 = Excellent).</p>
+            
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-semibold text-slate-700 block">Ease of Use</label>
+                    <input type="number" min="1" max="5" value="5" id="survey-ease" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block">Spaced Retention</label>
+                    <input type="number" min="1" max="5" value="5" id="survey-spaced" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block">Scaffolded Questioning</label>
+                    <input type="number" min="1" max="5" value="5" id="survey-scaffold" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block">PDF Viewer</label>
+                    <input type="number" min="1" max="5" value="5" id="survey-pdf" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block">Review History</label>
+                    <input type="number" min="1" max="5" value="5" id="survey-history" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block">Forums & Discussions</label>
+                    <input type="number" min="1" max="5" value="5" id="survey-forums" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block">Additional Comments</label>
+                    <textarea id="survey-comments" class="w-full p-2 border rounded-lg" placeholder="Optional comments..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="submitReactionSurvey()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">Submit & Finish</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESULT SURVEY MODAL -->
+    <div id="result-modal" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-lg font-bold text-indigo-900">🏆 Kirkpatrick Level 4: Real-World Exam Outcome</h3>
+            <p class="text-xs text-slate-500">Report your real-world performance on the USPTO Patent Bar Exam.</p>
+            
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-semibold text-slate-700 block">Did you pass the official USPTO Patent Bar Exam?</label>
+                    <select id="result-passed" class="w-full p-2 border rounded-lg">
+                        <option value="true">Yes, I passed!</option>
+                        <option value="false">Not yet / Failed</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block">Actual Score (if applicable)</label>
+                    <input type="text" id="result-score" class="w-full p-2 border rounded-lg" placeholder="e.g., 75% or Scaled Score">
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block">App Helpfulness Rating (1-5)</label>
+                    <input type="number" min="1" max="5" value="5" id="result-rating" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block">Comments on Real-World Application</label>
+                    <textarea id="result-comments" class="w-full p-2 border rounded-lg" placeholder="How did this platform help you on the real exam?"></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeResultSurveyModal()" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">Cancel</button>
+                <button onclick="submitResultSurvey()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">Submit Outcome</button>
+            </div>
+        </div>
+    </div>
 
     <footer class="text-center py-2 text-[11px] text-slate-400 border-t border-slate-200 bg-white mt-auto">
         Powered by FastAPI, SQLite Database, and Groq LLM.
@@ -221,7 +298,7 @@
         let isAnswered = false;
         let selectedChapters = ["700"];
         let chapterFilesMap = {};
-        let sessionMode = 'dynamic'; // 'dynamic', 'spaced', 'exam'
+        let sessionMode = 'dynamic'; // 'dynamic', 'spaced', 'baseline', 'exam'
         let spacedQueue = [];
         let isStudyPanelOpen = true; 
         
@@ -231,10 +308,9 @@
         let activeFilter = 'all';
         let modalViewMode = 'list';
 
-        // Timer State (180 seconds countdown per question)
         let questionSecondsRemaining = 180;
         let questionTimerInterval = null;
-        let examSecondsRemaining = 10800; // 3 Hours total for exam mode
+        let examSecondsRemaining = 10800;
         let examTimerInterval = null;
         let examTotalQuestions = 100;
         let examCurrentIndex = 0;
@@ -251,14 +327,11 @@
         function checkUserSession() {
             const loginWrapper = document.getElementById("google-login-btn-wrapper");
             const userBadge = document.getElementById("user-badge");
-
             if (currentUser) {
                 loginWrapper.classList.add("hidden");
                 userBadge.classList.remove("hidden");
                 document.getElementById("current-username-display").innerText = currentUser.username;
-                if (currentUser.picture) {
-                    document.getElementById("user-avatar").src = currentUser.picture;
-                }
+                if (currentUser.picture) document.getElementById("user-avatar").src = currentUser.picture;
             } else {
                 loginWrapper.classList.remove("hidden");
                 userBadge.classList.add("hidden");
@@ -274,10 +347,8 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Google authentication failed.");
-
                 currentUser = { username: data.username, email: data.email, picture: data.picture };
                 localStorage.setItem("mpep_google_user", JSON.stringify(currentUser));
-
                 checkUserSession();
                 fetchHistoryCount();
                 loadCommunityDiscussions();
@@ -302,25 +373,17 @@
 
         function setMode(mode) {
             sessionMode = mode;
-            const cardDyn = document.getElementById("mode-card-dynamic");
-            const cardSpaced = document.getElementById("mode-card-spaced");
-            const cardExam = document.getElementById("mode-card-exam");
-            const boxChapters = document.getElementById("chapter-selection-box");
-
-            [cardDyn, cardSpaced, cardExam].forEach(c => {
-                c.className = "p-4 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300";
+            ['dynamic', 'spaced', 'baseline', 'exam'].forEach(m => {
+                const card = document.getElementById(`mode-card-${m}`);
+                if (card) {
+                    card.className = m === mode 
+                        ? "p-3.5 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all"
+                        : "p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300";
+                }
             });
-
-            if (mode === 'dynamic') {
-                cardDyn.className = "p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all";
-                boxChapters.classList.remove("hidden");
-            } else if (mode === 'spaced') {
-                cardSpaced.className = "p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all";
-                boxChapters.classList.add("hidden");
-            } else if (mode === 'exam') {
-                cardExam.className = "p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all";
-                boxChapters.classList.remove("hidden");
-            }
+            const boxChapters = document.getElementById("chapter-selection-box");
+            if (mode === 'spaced') boxChapters.classList.add("hidden");
+            else boxChapters.classList.remove("hidden");
         }
 
         async function fetchAvailableChapters() {
@@ -330,27 +393,16 @@
                     const data = await res.json();
                     const container = document.getElementById("chapter-checkboxes");
                     container.innerHTML = "";
-
-                    if (data.chapters.length === 0) {
-                        container.innerHTML = `<div class="text-xs text-rose-600 col-span-2">No MPEP PDF files found on server.</div>`;
-                        return;
-                    }
-
                     data.chapters.forEach((item, idx) => {
                         chapterFilesMap[item.chapter] = item.filename;
                         const isChecked = idx === 0 ? "checked" : "";
                         const label = document.createElement("label");
                         label.className = "flex items-center gap-3 p-2.5 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-indigo-300 transition text-sm";
-                        label.innerHTML = `
-                            <input type="checkbox" name="chapter" value="${item.chapter}" ${isChecked} class="accent-indigo-600 w-4 h-4">
-                            <span class="font-medium text-slate-700">Chapter ${item.chapter}</span>
-                        `;
+                        label.innerHTML = `<input type="checkbox" name="chapter" value="${item.chapter}" ${isChecked} class="accent-indigo-600 w-4 h-4"><span class="font-medium text-slate-700">Chapter ${item.chapter}</span>`;
                         container.appendChild(label);
                     });
                 }
-            } catch (err) {
-                console.error("Failed to load chapters from server:", err);
-            }
+            } catch (err) { console.error("Failed to load chapters:", err); }
         }
 
         async function fetchHistoryCount() {
@@ -361,38 +413,28 @@
                     questionHistory = await res.json();
                     document.getElementById("history-count").innerText = questionHistory.length;
                 }
-            } catch (err) {
-                console.error("Could not fetch history from backend:", err);
-            }
+            } catch (err) { console.error("Could not fetch history:", err); }
         }
 
         async function startQuiz() {
-            if (sessionMode === 'dynamic' || sessionMode === 'exam') {
+            if (sessionMode !== 'spaced') {
                 const checkboxes = document.querySelectorAll('input[name="chapter"]:checked');
                 selectedChapters = Array.from(checkboxes).map(cb => cb.value);
-
-                if (selectedChapters.length === 0) {
-                    alert("Please select at least one MPEP chapter.");
-                    return;
-                }
+                if (selectedChapters.length === 0) { alert("Please select at least one MPEP chapter."); return; }
             } else {
-                const uname = getActiveUsername();
-                const res = await fetch(`${API_BASE}/spaced-repetition-questions?username=${encodeURIComponent(uname)}`);
+                const res = await fetch(`${API_BASE}/spaced-repetition-questions?username=${encodeURIComponent(getActiveUsername())}`);
                 if (res.ok) {
                     spacedQueue = await res.json();
-                    if (spacedQueue.length === 0) {
-                        alert("No review items found in history database for this user.");
-                        return;
-                    }
+                    if (spacedQueue.length === 0) { alert("No review items found."); return; }
                 }
             }
 
-            currentDifficulty = "easy";
+            currentDifficulty = sessionMode === 'baseline' ? "medium" : "easy";
             consecutiveCorrect = 0;
             score = 0;
             totalAnswered = 0;
             examCurrentIndex = 0;
-            examSecondsRemaining = 10800; // 3 hours
+            examSecondsRemaining = 10800;
 
             document.getElementById("landing-view").classList.add("hidden");
             document.getElementById("history-view").classList.add("hidden");
@@ -402,10 +444,7 @@
             document.getElementById("score").innerText = "0";
             document.getElementById("total").innerText = "0";
             
-            if (sessionMode === 'exam') {
-                startExamCountdown();
-            }
-
+            if (sessionMode === 'exam') startExamCountdown();
             updateDifficultyBadge();
             fetchNewQuestion();
         }
@@ -417,24 +456,21 @@
                 if (examSecondsRemaining <= 0) {
                     clearInterval(examTimerInterval);
                     alert("⏰ Time's up! Your 3-hour exam session has ended.");
-                    returnToLanding();
+                    openReactionSurveyModal();
                 }
             }, 1000);
         }
 
         function startQuestionTimer() {
-            questionSecondsRemaining = 180; // 180 seconds countdown
+            questionSecondsRemaining = 180;
             if (questionTimerInterval) clearInterval(questionTimerInterval);
-
             document.getElementById("timer-display").innerText = "03:00";
 
             questionTimerInterval = setInterval(() => {
                 questionSecondsRemaining--;
                 const mins = Math.floor(questionSecondsRemaining / 60).toString().padStart(2, '0');
                 const secs = (questionSecondsRemaining % 60).toString().padStart(2, '0');
-                
                 document.getElementById("timer-display").innerText = `${mins}:${secs}`;
-
                 if (questionSecondsRemaining <= 0) {
                     clearInterval(questionTimerInterval);
                     handleQuestionTimeout();
@@ -446,51 +482,38 @@
             if (isAnswered) return;
             isAnswered = true;
             totalAnswered++;
-
             const correctLetter = currentQuestion.correct_answer.trim().charAt(0).toUpperCase();
-            const isProcedural = sessionMode !== 'exam' && (currentQuestion.question_type || "procedural").toLowerCase() === "procedural";
 
-            const optionsContainer = document.getElementById("options-container");
-            const buttons = optionsContainer.getElementsByTagName("button");
-
-            for (let btn of buttons) {
-                if (btn.innerText.startsWith(correctLetter)) {
-                    btn.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-start gap-2.5";
-                } else {
-                    btn.className = "w-full text-left py-2 px-3 rounded-lg bg-slate-100 text-slate-400 text-xs flex items-start gap-2.5";
-                }
+            for (let btn of document.getElementById("options-container").getElementsByTagName("button")) {
+                btn.className = btn.innerText.startsWith(correctLetter) 
+                    ? "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-start gap-2.5"
+                    : "w-full text-left py-2 px-3 rounded-lg bg-slate-100 text-slate-400 text-xs flex items-start gap-2.5";
                 btn.disabled = true;
             }
 
             showAdaptiveNotice("⏰ Time expired (180 seconds limit reached).", "down");
-            if (isProcedural || sessionMode !== 'exam') {
-                document.getElementById("explanation-box").classList.remove("hidden");
-            }
+            document.getElementById("explanation-box").classList.remove("hidden");
 
-            try {
-                await fetch(`${API_BASE}/history`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        username: getActiveUsername(),
-                        chapter: currentQuestion.chapter || "Chapter 700",
-                        context: currentQuestion.chapter_context,
-                        question_type: currentQuestion.question_type || "procedural",
-                        stem: currentQuestion.question_stem,
-                        options: currentQuestion.options,
-                        user_choice: "TIMEOUT",
-                        correct_choice: correctLetter,
-                        explanation: currentQuestion.explanation,
-                        difficulty: currentDifficulty,
-                        is_correct: false,
-                        time_spent: 180
-                    })
-                });
-                await fetchHistoryCount();
-            } catch (err) {
-                console.error("Failed to save timeout history:", err);
-            }
-
+            await fetch(`${API_BASE}/history`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: getActiveUsername(),
+                    chapter: currentQuestion.chapter || "Chapter 700",
+                    context: currentQuestion.chapter_context,
+                    question_type: currentQuestion.question_type || "procedural",
+                    stem: currentQuestion.question_stem,
+                    options: currentQuestion.options,
+                    user_choice: "TIMEOUT",
+                    correct_choice: correctLetter,
+                    explanation: currentQuestion.explanation,
+                    difficulty: currentDifficulty,
+                    is_correct: false,
+                    time_spent: 180,
+                    session_type: sessionMode
+                })
+            });
+            await fetchHistoryCount();
             document.getElementById("score").innerText = score;
             document.getElementById("total").innerText = totalAnswered;
         }
@@ -498,13 +521,11 @@
         function returnToLanding() {
             if (questionTimerInterval) clearInterval(questionTimerInterval);
             if (examTimerInterval) clearInterval(examTimerInterval);
-
             document.getElementById("quiz-view").classList.add("hidden");
             document.getElementById("history-view").classList.add("hidden");
             document.getElementById("stats").classList.add("hidden");
             document.getElementById("landing-view").classList.remove("hidden");
             document.getElementById("main-container").className = "max-w-3xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-center transition-all duration-300";
-            
             fetchHistoryCount();
             loadCommunityDiscussions();
         }
@@ -515,10 +536,23 @@
             document.getElementById("stats").classList.add("hidden");
             document.getElementById("history-view").classList.remove("hidden");
             document.getElementById("main-container").className = "max-w-4xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col transition-all duration-300";
-            document.getElementById("history-user-label").innerText = currentUser ? currentUser.username : "guest";
+            document.getElementById("history-user-label").innerText = getActiveUsername();
             
             await fetchHistoryCount();
+            await fetchBehaviorAnalytics();
             renderModalContent();
+        }
+
+        async function fetchBehaviorAnalytics() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics/behavior?username=${encodeURIComponent(getActiveUsername())}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById("analytics-weighted-acc").innerText = `${data.weighted_accuracy}%`;
+                    document.getElementById("analytics-total-attempts").innerText = data.total_attempts;
+                    document.getElementById("analytics-avg-speed").innerText = `${data.average_response_time_seconds}s`;
+                }
+            } catch (err) { console.error("Failed to load behavior analytics:", err); }
         }
 
         function toggleStudyPanel() {
@@ -531,18 +565,10 @@
                 panel.classList.remove("hidden");
                 splitLayout.className = "grid grid-cols-1 lg:grid-cols-2 gap-4 w-full transition-all duration-300";
                 btnText.innerText = "Hide PDF";
-
-                let activeCh = "700";
-                if (currentQuestion && currentQuestion.chapter) {
-                    activeCh = currentQuestion.chapter.replace("Chapter ", "").trim();
-                } else if (selectedChapters.length > 0) {
-                    activeCh = selectedChapters[0];
-                }
-
+                let activeCh = (currentQuestion && currentQuestion.chapter) ? currentQuestion.chapter.replace("Chapter ", "").trim() : selectedChapters[0] || "700";
                 document.getElementById("pdf-chapter-label").innerText = activeCh;
                 const filename = chapterFilesMap[activeCh] || `mpep-${activeCh}.pdf`;
-                const pdfUrl = encodeURIComponent(`${window.location.origin}/pdfs/${filename}`);
-                document.getElementById("pdf-iframe").src = `${window.location.origin}/viewer/web/viewer.html?file=${pdfUrl}#pagemode=none`;
+                document.getElementById("pdf-iframe").src = `${window.location.origin}/viewer/web/viewer.html?file=${encodeURIComponent(`${window.location.origin}/pdfs/${filename}`)}#pagemode=none`;
             } else {
                 panel.classList.add("hidden");
                 splitLayout.className = "grid grid-cols-1 gap-4 w-full transition-all duration-300";
@@ -553,37 +579,20 @@
         function updateDifficultyBadge() {
             const badge = document.getElementById("badge-difficulty");
             badge.innerText = currentDifficulty;
-            if (currentDifficulty === "easy") {
-                badge.className = "text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold uppercase";
-            } else if (currentDifficulty === "medium") {
-                badge.className = "text-[11px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-semibold uppercase";
-            } else if (currentDifficulty === "hard") {
-                badge.className = "text-[11px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-semibold uppercase";
-            }
+            badge.className = `text-[11px] px-2 py-0.5 rounded-full font-semibold uppercase ${currentDifficulty === 'easy' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : currentDifficulty === 'medium' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`;
         }
 
         function updateTypeBadge(qType) {
             const badge = document.getElementById("badge-type");
             const isProcedural = (qType || "procedural").toLowerCase() === "procedural";
-            if (isProcedural) {
-                badge.innerText = "⚡ Procedural";
-                badge.className = "text-[11px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold";
-            } else {
-                badge.innerText = "🧠 Substantive";
-                badge.className = "text-[11px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-semibold";
-            }
+            badge.innerText = isProcedural ? "⚡ Procedural" : "🧠 Substantive";
+            badge.className = isProcedural ? "text-[11px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold" : "text-[11px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-semibold";
         }
 
         function showAdaptiveNotice(message, type) {
             const banner = document.getElementById("adaptive-banner");
             banner.innerHTML = message;
-            banner.className = `p-2 rounded-xl text-xs font-semibold text-center ${
-                type === 'up' 
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-                    : type === 'info'
-                    ? 'bg-amber-50 text-amber-900 border border-amber-200'
-                    : 'bg-rose-50 text-rose-800 border border-rose-200'
-            }`;
+            banner.className = `p-2 rounded-xl text-xs font-semibold text-center ${type === 'up' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : type === 'info' ? 'bg-amber-50 text-amber-900 border border-amber-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`;
             banner.classList.remove("hidden");
         }
 
@@ -591,8 +600,7 @@
             if (sessionMode === 'exam') {
                 examCurrentIndex++;
                 if (examCurrentIndex > examTotalQuestions) {
-                    alert(`🎓 Full Exam Completed!\nFinal Score: ${score} / ${examTotalQuestions}`);
-                    returnToLanding();
+                    openReactionSurveyModal();
                     return;
                 }
             }
@@ -612,27 +620,16 @@
             try {
                 let data = null;
                 if (sessionMode === 'spaced') {
-                    if (spacedQueue.length === 0) {
-                        alert("Spaced repetition review session completed!");
-                        returnToLanding();
-                        return;
-                    }
+                    if (spacedQueue.length === 0) { alert("Spaced review session completed!"); returnToLanding(); return; }
                     data = spacedQueue.shift();
                 } else {
-                    const url = `${API_BASE}/generate-question?chapters=${selectedChapters.join(",")}&difficulty=${currentDifficulty}`;
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error("Failed to fetch from backend generator.");
-                    data = await response.json();
+                    const res = await fetch(`${API_BASE}/generate-question?chapters=${selectedChapters.join(",")}&difficulty=${currentDifficulty}`);
+                    if (!res.ok) throw new Error("Failed to fetch generator.");
+                    data = await res.json();
                 }
 
                 currentQuestion = data;
-                
-                if (sessionMode === 'exam') {
-                    document.getElementById("badge-context").innerText = `Exam Q ${examCurrentIndex}/${examTotalQuestions} | ${data.chapter_context}`;
-                } else {
-                    document.getElementById("badge-context").innerText = data.chapter_context;
-                }
-
+                document.getElementById("badge-context").innerText = sessionMode === 'exam' ? `Exam Q ${examCurrentIndex}/${examTotalQuestions} | ${data.chapter_context}` : data.chapter_context;
                 updateTypeBadge(data.question_type);
                 document.getElementById("question-stem").innerText = data.question_stem;
 
@@ -640,13 +637,11 @@
                     const chNum = data.chapter.replace("Chapter ", "").trim();
                     document.getElementById("pdf-chapter-label").innerText = chNum;
                     const filename = chapterFilesMap[chNum] || `mpep-${chNum}.pdf`;
-                    const pdfUrl = encodeURIComponent(`${window.location.origin}/pdfs/${filename}`);
-                    document.getElementById("pdf-iframe").src = `${window.location.origin}/viewer/web/viewer.html?file=${pdfUrl}#pagemode=none`;
+                    document.getElementById("pdf-iframe").src = `${window.location.origin}/viewer/web/viewer.html?file=${encodeURIComponent(`${window.location.origin}/pdfs/${filename}`)}#pagemode=none`;
                 }
 
                 const optionsContainer = document.getElementById("options-container");
                 optionsContainer.innerHTML = "";
-
                 data.options.forEach(optText => {
                     const optLetter = optText.trim().charAt(0).toUpperCase();
                     const button = document.createElement("button");
@@ -658,9 +653,7 @@
 
                 document.getElementById("explanation-text").innerText = data.explanation;
                 nextBtn.innerText = sessionMode === 'exam' && examCurrentIndex === examTotalQuestions ? "Finish Exam 🏁" : "Next Question 🚀";
-
                 startQuestionTimer();
-
             } catch (err) {
                 console.error(err);
                 alert("Error connecting to backend API.");
@@ -678,22 +671,17 @@
 
             if (questionTimerInterval) clearInterval(questionTimerInterval);
             const timeSpent = 180 - questionSecondsRemaining;
-
             const correctLetter = currentQuestion.correct_answer.trim().charAt(0).toUpperCase();
             const isCorrect = chosenLetter === correctLetter;
-            const isProcedural = sessionMode !== 'exam' && (currentQuestion.question_type || "procedural").toLowerCase() === "procedural";
+            const buttons = document.getElementById("options-container").getElementsByTagName("button");
 
-            const optionsContainer = document.getElementById("options-container");
-            const buttons = optionsContainer.getElementsByTagName("button");
-
-            if (sessionMode === 'exam') {
+            if (sessionMode === 'exam' || sessionMode === 'baseline') {
                 selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-indigo-50 border-2 border-indigo-500 text-indigo-900 text-xs flex items-start gap-2.5";
                 if (isCorrect) score++;
-            } else if (isProcedural) {
+            } else {
                 if (isCorrect) {
                     selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs flex items-start gap-2.5";
                     score++;
-                    consecutiveCorrect++;
                 } else {
                     selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-rose-50 border-2 border-rose-500 text-rose-900 text-xs flex items-start gap-2.5";
                     for (let btn of buttons) {
@@ -701,61 +689,88 @@
                             btn.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-start gap-2.5";
                         }
                     }
-                    consecutiveCorrect = 0;
                 }
                 document.getElementById("explanation-box").classList.remove("hidden");
-            } else {
-                selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-indigo-50 border-2 border-indigo-500 text-indigo-900 text-xs flex items-start gap-2.5";
-                showAdaptiveNotice("🧠 Substantive Question: Feedback delayed to review in History.", "info");
-                if (isCorrect) score++;
             }
 
-            const authoritativeChapter = currentQuestion.chapter || "Chapter 700";
-
-            try {
-                await fetch(`${API_BASE}/history`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        username: getActiveUsername(),
-                        chapter: authoritativeChapter,
-                        context: currentQuestion.chapter_context,
-                        question_type: currentQuestion.question_type || "procedural",
-                        stem: currentQuestion.question_stem,
-                        options: currentQuestion.options,
-                        user_choice: chosenLetter,
-                        correct_choice: correctLetter,
-                        explanation: currentQuestion.explanation,
-                        difficulty: currentDifficulty,
-                        is_correct: isCorrect,
-                        time_spent: timeSpent
-                    })
-                });
-                await fetchHistoryCount();
-            } catch (err) {
-                console.error("Failed to save history to database:", err);
-            }
-
-            updateDifficultyBadge();
+            await fetch(`${API_BASE}/history`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: getActiveUsername(),
+                    chapter: currentQuestion.chapter || "Chapter 700",
+                    context: currentQuestion.chapter_context,
+                    question_type: currentQuestion.question_type || "procedural",
+                    stem: currentQuestion.question_stem,
+                    options: currentQuestion.options,
+                    user_choice: chosenLetter,
+                    correct_choice: correctLetter,
+                    explanation: currentQuestion.explanation,
+                    difficulty: currentDifficulty,
+                    is_correct: isCorrect,
+                    time_spent: timeSpent,
+                    session_type: sessionMode
+                })
+            });
+            await fetchHistoryCount();
             document.getElementById("score").innerText = score;
             document.getElementById("total").innerText = totalAnswered;
         }
 
+        function openReactionSurveyModal() {
+            if (examTimerInterval) clearInterval(examTimerInterval);
+            if (questionTimerInterval) clearInterval(questionTimerInterval);
+            document.getElementById("quiz-view").classList.add("hidden");
+            document.getElementById("reaction-modal").classList.remove("hidden");
+        }
+
+        async function submitReactionSurvey() {
+            try {
+                await fetch(`${API_BASE}/surveys/reaction`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        username: getActiveUsername(),
+                        ease_of_use: parseInt(document.getElementById("survey-ease").value),
+                        spaced_retention: parseInt(document.getElementById("survey-spaced").value),
+                        scaffolded_questioning: parseInt(document.getElementById("survey-scaffold").value),
+                        pdf_viewer: parseInt(document.getElementById("survey-pdf").value),
+                        review_history: parseInt(document.getElementById("survey-history").value),
+                        forums: parseInt(document.getElementById("survey-forums").value),
+                        comments: document.getElementById("survey-comments").value
+                    })
+                });
+                alert("Thank you! Reaction survey recorded.");
+                document.getElementById("reaction-modal").classList.add("hidden");
+                returnToLanding();
+            } catch (err) { alert("Failed to submit reaction survey."); }
+        }
+
+        function openResultSurveyModal() { document.getElementById("result-modal").classList.remove("hidden"); }
+        function closeResultSurveyModal() { document.getElementById("result-modal").classList.add("hidden"); }
+
+        async function submitResultSurvey() {
+            try {
+                await fetch(`${API_BASE}/surveys/result`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        username: getActiveUsername(),
+                        passed_exam: document.getElementById("result-passed").value === "true",
+                        actual_score: document.getElementById("result-score").value,
+                        app_helpfulness_rating: parseInt(document.getElementById("result-rating").value),
+                        real_world_comments: document.getElementById("result-comments").value
+                    })
+                });
+                alert("Thank you for submitting your real-world exam outcome!");
+                closeResultSurveyModal();
+            } catch (err) { alert("Failed to submit result survey."); }
+        }
+
         function switchModalView(view) {
             modalViewMode = view;
-            const listTab = document.getElementById("tab-list");
-            const summaryTab = document.getElementById("tab-summary");
-            const listFilters = document.getElementById("list-filters");
-
-            if (view === 'list') {
-                listTab.className = "px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs";
-                summaryTab.className = "px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
-                listFilters.classList.remove("hidden");
-            } else {
-                summaryTab.className = "px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs";
-                listTab.className = "px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
-                listFilters.classList.add("hidden");
-            }
+            document.getElementById("tab-list").className = view === 'list' ? "px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs" : "px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
+            document.getElementById("tab-summary").className = view === 'summary' ? "px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs" : "px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer";
             renderModalContent();
         }
 
@@ -763,26 +778,17 @@
             activeFilter = filter;
             ['all', 'correct', 'wrong'].forEach(f => {
                 const btn = document.getElementById(`filter-${f}`);
-                if (f === filter) {
-                    btn.className = "px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-medium cursor-pointer";
-                } else {
-                    btn.className = "px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer";
-                }
+                if (btn) btn.className = f === filter ? "px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-medium cursor-pointer" : "px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer";
             });
             renderModalContent();
         }
 
         async function clearHistory() {
-            const uname = getActiveUsername();
-            if (confirm(`Are you sure you want to clear all history for user "${uname}"?`)) {
-                try {
-                    await fetch(`${API_BASE}/history?username=${encodeURIComponent(uname)}`, { method: "DELETE" });
-                    questionHistory = [];
-                    await fetchHistoryCount();
-                    renderModalContent();
-                } catch (err) {
-                    console.error("Failed to clear database history:", err);
-                }
+            if (confirm(`Clear all history for "${getActiveUsername()}"?`)) {
+                await fetch(`${API_BASE}/history?username=${encodeURIComponent(getActiveUsername())}`, { method: "DELETE" });
+                questionHistory = [];
+                await fetchHistoryCount();
+                renderModalContent();
             }
         }
 
@@ -948,11 +954,29 @@
                     : `<span class="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-semibold">Substantive</span>`;
 
                 const timeSpentStr = item.timeSpent ? `⏱️ ${item.timeSpent}s spent` : '';
-
                 const qHash = hashCode(item.stem);
                 const commentsFeedId = `history-comments-${index}`;
                 const userFieldId = `history-user-${index}`;
                 const contentFieldId = `history-content-${index}`;
+
+                // Option Breakdown list formatting
+                let optionsFormatted = '';
+                if (item.options && Array.isArray(item.options)) {
+                    optionsFormatted = item.options.map(opt => {
+                        const letter = opt.trim().charAt(0).toUpperCase();
+                        const isUserChoice = letter === item.userChoice;
+                        const isCorrectChoice = letter === item.correctChoice;
+                        
+                        let optStyle = "bg-slate-50 border-slate-200 text-slate-700";
+                        if (isCorrectChoice) optStyle = "bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold";
+                        else if (isUserChoice && !item.isCorrect) optStyle = "bg-rose-50 border-rose-300 text-rose-900 font-semibold";
+
+                        let userTag = isUserChoice ? ` <span class="text-[10px] underline font-bold">(Your Choice)</span>` : '';
+                        let correctTag = isCorrectChoice ? ` <span class="text-[10px] font-bold text-emerald-700">(Correct Answer)</span>` : '';
+
+                        return `<div class="p-2 rounded-lg border text-xs ${optStyle}">${opt}${userTag}${correctTag}</div>`;
+                    }).join('');
+                }
 
                 card.innerHTML = `
                     <div class="flex justify-between items-center text-xs flex-wrap gap-2">
@@ -964,20 +988,21 @@
                         </div>
                     </div>
                     <p class="text-slate-800 font-semibold text-sm sm:text-base leading-relaxed">${item.stem}</p>
-                    <div class="text-xs space-y-1 pl-3 border-l-2 border-slate-200">
-                        <p class="${item.isCorrect ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold'}">Your Choice: Choice ${item.userChoice}</p>
-                        <p class="text-emerald-700 font-semibold">Correct Answer: Choice ${item.correctChoice}</p>
+                    
+                    <div class="space-y-1 mt-2">
+                        <h5 class="font-bold text-xs text-slate-700">Answer Options Breakdown:</h5>
+                        <div class="space-y-1">${optionsFormatted}</div>
                     </div>
 
                     <div class="pt-2">
                         <details class="text-xs text-slate-600 cursor-pointer" open>
-                            <summary class="font-bold text-indigo-700 hover:text-indigo-900 transition-colors mb-2">📖 Explanation & MPEP Rationale</summary>
+                            <summary class="font-bold text-indigo-700 hover:text-indigo-900 transition-colors mb-2">📖 Explanation & Option-by-Option Rationale</summary>
                             <p class="text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200 whitespace-pre-line text-xs sm:text-sm">${item.explanation}</p>
                         </details>
                     </div>
                     
                     <div class="bg-indigo-50/60 border border-indigo-100 p-4 rounded-xl space-y-3 mt-4">
-                        <h4 class="font-bold text-indigo-900 text-xs flex items-center gap-1.5">🧠 Community Peer Discussion & Notes</h4>
+                        <h4 class="font-bold text-indigo-900 text-xs flex items-center gap-1.5">💬 Community Discussion & Notes</h4>
                         <div id="${commentsFeedId}" class="space-y-2 max-h-48 overflow-y-auto pr-1">
                             <p class="text-xs text-slate-400 italic">Loading discussion threads...</p>
                         </div>
