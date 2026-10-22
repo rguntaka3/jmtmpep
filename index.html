@@ -33,6 +33,10 @@
                     </div>
                 </div>
 
+                <button onclick="showTeacherView()" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 px-3 py-1.5 rounded-lg border border-amber-300 font-semibold flex items-center gap-1.5 cursor-pointer transition">
+                    👩‍🏫 Teacher View
+                </button>
+
                 <button onclick="showHistoryView()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium flex items-center gap-1.5 cursor-pointer transition">
                     📜 Review & Analytics (<span id="history-count" class="font-bold">0</span>)
                 </button>
@@ -161,6 +165,64 @@
             </div>
         </div>
 
+        <!-- TEACHER VIEW (INSTRUCTOR DASHBOARD) -->
+        <div id="teacher-view" class="hidden w-full space-y-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-4 flex-wrap gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 Instructor Analytics & Class Performance</h2>
+                        <p class="text-xs sm:text-sm text-slate-500">Overview of student activity, difficulty-weighted accuracy, and per-user performance trends.</p>
+                    </div>
+                    <button onclick="returnToLanding()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer shadow-xs">← Back to Dashboard</button>
+                </div>
+
+                <!-- Class Summary Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-amber-50/60 border border-amber-200 p-4 rounded-xl text-xs">
+                    <div>
+                        <span class="text-amber-800/70 block font-medium">Active Students</span>
+                        <span id="teacher-class-students" class="text-lg font-bold text-amber-950">0</span>
+                    </div>
+                    <div>
+                        <span class="text-amber-800/70 block font-medium">Total Attempts (All Users)</span>
+                        <span id="teacher-class-attempts" class="text-lg font-bold text-amber-950">0</span>
+                    </div>
+                    <div>
+                        <span class="text-amber-800/70 block font-medium">Class Weighted Accuracy</span>
+                        <span id="teacher-class-accuracy" class="text-lg font-bold text-amber-950">0.0%</span>
+                    </div>
+                    <div>
+                        <span class="text-amber-800/70 block font-medium">Class Avg Speed</span>
+                        <span id="teacher-class-speed" class="text-lg font-bold text-amber-950">0.0s</span>
+                    </div>
+                </div>
+
+                <!-- Per-User Metrics Table with Sparklines -->
+                <div class="space-y-3">
+                    <h3 class="text-sm font-bold text-slate-900">Student Breakdown Table & Performance Trends</h3>
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="w-full text-left text-xs text-slate-700">
+                            <thead class="bg-slate-50 border-b border-slate-200 uppercase font-bold text-[10px] text-slate-500">
+                                <tr>
+                                    <th class="p-3">User / Email</th>
+                                    <th class="p-3">Attempts</th>
+                                    <th class="p-3">Weighted Accuracy (%)</th>
+                                    <th class="p-3">Accuracy Trend Sparkline</th>
+                                    <th class="p-3">Avg Speed</th>
+                                    <th class="p-3">Last Active</th>
+                                    <th class="p-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacher-users-tbody" class="divide-y divide-slate-200">
+                                <tr>
+                                    <td colspan="7" class="p-4 text-center text-slate-400 italic">Loading student data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- HISTORY & ANALYTICS VIEW -->
         <div id="history-view" class="hidden w-full space-y-6">
             <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
@@ -185,6 +247,21 @@
                     <div>
                         <span class="text-slate-500 block">Avg Response Speed</span>
                         <span id="analytics-avg-speed" class="text-base font-bold text-indigo-900">0.0s</span>
+                    </div>
+                </div>
+
+                <!-- TREND VISUALIZATION SECTION -->
+                <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-2xs">
+                    <h3 class="text-sm font-bold text-indigo-900 flex items-center gap-2">📈 Performance & Response Time Trends</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                            <h4 class="text-xs font-bold text-slate-700">Running Weighted Accuracy Trend (%)</h4>
+                            <div id="chart-accuracy-container" class="w-full h-40 flex items-center justify-center text-xs text-slate-400">Loading trend chart...</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                            <h4 class="text-xs font-bold text-slate-700">Response Time Trend per Attempt (Seconds)</h4>
+                            <div id="chart-speed-container" class="w-full h-40 flex items-center justify-center text-xs text-slate-400">Loading trend chart...</div>
+                        </div>
                     </div>
                 </div>
 
@@ -298,7 +375,7 @@
         let isAnswered = false;
         let selectedChapters = ["700"];
         let chapterFilesMap = {};
-        let sessionMode = 'dynamic'; // 'dynamic', 'spaced', 'baseline', 'exam'
+        let sessionMode = 'dynamic';
         let spacedQueue = [];
         let isStudyPanelOpen = true; 
         
@@ -307,6 +384,7 @@
         let questionHistory = [];
         let activeFilter = 'all';
         let modalViewMode = 'list';
+        let inspectedUser = null;
 
         let questionSecondsRemaining = 180;
         let questionTimerInterval = null;
@@ -368,7 +446,7 @@
         }
 
         function getActiveUsername() {
-            return currentUser ? currentUser.email || currentUser.username : "guest";
+            return inspectedUser || (currentUser ? currentUser.email || currentUser.username : "guest");
         }
 
         function setMode(mode) {
@@ -417,6 +495,7 @@
         }
 
         async function startQuiz() {
+            inspectedUser = null;
             if (sessionMode !== 'spaced') {
                 const checkboxes = document.querySelectorAll('input[name="chapter"]:checked');
                 selectedChapters = Array.from(checkboxes).map(cb => cb.value);
@@ -438,6 +517,7 @@
 
             document.getElementById("landing-view").classList.add("hidden");
             document.getElementById("history-view").classList.add("hidden");
+            document.getElementById("teacher-view").classList.add("hidden");
             document.getElementById("quiz-view").classList.remove("hidden");
             document.getElementById("stats").classList.remove("hidden");
             document.getElementById("main-container").className = "max-w-7xl w-full mx-auto p-2 sm:p-4 flex-grow flex flex-col justify-center transition-all duration-300";
@@ -519,10 +599,12 @@
         }
 
         function returnToLanding() {
+            inspectedUser = null;
             if (questionTimerInterval) clearInterval(questionTimerInterval);
             if (examTimerInterval) clearInterval(examTimerInterval);
             document.getElementById("quiz-view").classList.add("hidden");
             document.getElementById("history-view").classList.add("hidden");
+            document.getElementById("teacher-view").classList.add("hidden");
             document.getElementById("stats").classList.add("hidden");
             document.getElementById("landing-view").classList.remove("hidden");
             document.getElementById("main-container").className = "max-w-3xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-center transition-all duration-300";
@@ -531,8 +613,10 @@
         }
 
         async function showHistoryView() {
+            inspectedUser = null;
             document.getElementById("landing-view").classList.add("hidden");
             document.getElementById("quiz-view").classList.add("hidden");
+            document.getElementById("teacher-view").classList.add("hidden");
             document.getElementById("stats").classList.add("hidden");
             document.getElementById("history-view").classList.remove("hidden");
             document.getElementById("main-container").className = "max-w-4xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col transition-all duration-300";
@@ -540,6 +624,103 @@
             
             await fetchHistoryCount();
             await fetchBehaviorAnalytics();
+            await fetchBehaviorTrends();
+            renderModalContent();
+        }
+
+        async function showTeacherView() {
+            document.getElementById("landing-view").classList.add("hidden");
+            document.getElementById("quiz-view").classList.add("hidden");
+            document.getElementById("history-view").classList.add("hidden");
+            document.getElementById("stats").classList.add("hidden");
+            document.getElementById("teacher-view").classList.remove("hidden");
+            document.getElementById("main-container").className = "max-w-5xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col transition-all duration-300";
+
+            await loadTeacherData();
+        }
+
+        async function loadTeacherData() {
+            try {
+                const [summaryRes, usersRes] = await Promise.all([
+                    fetch(`${API_BASE}/analytics/teacher/summary`),
+                    fetch(`${API_BASE}/analytics/teacher/users`)
+                ]);
+
+                if (summaryRes.ok) {
+                    const s = await summaryRes.json();
+                    document.getElementById("teacher-class-students").innerText = s.total_students;
+                    document.getElementById("teacher-class-attempts").innerText = s.total_class_attempts;
+                    document.getElementById("teacher-class-accuracy").innerText = `${s.class_weighted_accuracy}%`;
+                    document.getElementById("teacher-class-speed").innerText = `${s.class_avg_speed}s`;
+                }
+
+                if (usersRes.ok) {
+                    const users = await usersRes.json();
+                    const tbody = document.getElementById("teacher-users-tbody");
+                    tbody.innerHTML = "";
+
+                    if (users.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">No student records recorded yet.</td></tr>`;
+                        return;
+                    }
+
+                    users.forEach(u => {
+                        const sparklineSvg = generateSparkline(u.accuracy_trend);
+                        const tr = document.createElement("tr");
+                        tr.className = "hover:bg-slate-50 transition";
+                        tr.innerHTML = `
+                            <td class="p-3 font-semibold text-indigo-900">${escapeHtml(u.username)}</td>
+                            <td class="p-3 font-medium text-slate-700">${u.attempts}</td>
+                            <td class="p-3 font-bold ${u.weighted_accuracy >= 70 ? 'text-emerald-600' : 'text-amber-600'}">${u.weighted_accuracy}%</td>
+                            <td class="p-3 w-32">${sparklineSvg}</td>
+                            <td class="p-3 text-slate-600">${u.avg_response_time}s</td>
+                            <td class="p-3 text-slate-400 text-[11px]">${u.last_active}</td>
+                            <td class="p-3 text-right">
+                                <button onclick="inspectUserHistory('${escapeHtml(u.username)}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-md text-[11px] cursor-pointer">Inspect Logs</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (err) { console.error("Failed to load teacher analytics:", err); }
+        }
+
+        function generateSparkline(trendSeq) {
+            if (!trendSeq || trendSeq.length === 0) return `<span class="text-slate-300 text-[10px]">No data</span>`;
+            const width = 100;
+            const height = 30;
+            const maxVal = 100;
+            const minVal = 0;
+            const range = maxVal - minVal;
+
+            if (trendSeq.length === 1) trendSeq = [trendSeq[0], trendSeq[0]];
+
+            const points = trendSeq.map((val, idx) => {
+                const x = (idx / (trendSeq.length - 1)) * width;
+                const y = height - ((val - minVal) / range) * height;
+                return `${x},${y}`;
+            }).join(" ");
+
+            return `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-7 overflow-visible">
+                    <polyline fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${points}" />
+                </svg>
+            `;
+        }
+
+        async function inspectUserHistory(targetUsername) {
+            inspectedUser = targetUsername;
+            document.getElementById("teacher-view").classList.add("hidden");
+            document.getElementById("history-view").classList.remove("hidden");
+            document.getElementById("history-user-label").innerText = targetUsername;
+            
+            const res = await fetch(`${API_BASE}/history?username=${encodeURIComponent(targetUsername)}`);
+            if (res.ok) {
+                questionHistory = await res.json();
+                document.getElementById("history-count").innerText = questionHistory.length;
+            }
+            await fetchBehaviorAnalytics();
+            await fetchBehaviorTrends();
             renderModalContent();
         }
 
@@ -553,6 +734,68 @@
                     document.getElementById("analytics-avg-speed").innerText = `${data.average_response_time_seconds}s`;
                 }
             } catch (err) { console.error("Failed to load behavior analytics:", err); }
+        }
+
+        async function fetchBehaviorTrends() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics/trends?username=${encodeURIComponent(getActiveUsername())}`);
+                if (res.ok) {
+                    const trends = await res.json();
+                    renderTrendCharts(trends);
+                }
+            } catch (err) { console.error("Failed to load behavior trends:", err); }
+        }
+
+        function renderTrendCharts(trends) {
+            const accContainer = document.getElementById("chart-accuracy-container");
+            const speedContainer = document.getElementById("chart-speed-container");
+
+            if (!trends || trends.length === 0) {
+                accContainer.innerHTML = `<span class="text-slate-400 italic">No trend data available yet.</span>`;
+                speedContainer.innerHTML = `<span class="text-slate-400 italic">No trend data available yet.</span>`;
+                return;
+            }
+
+            accContainer.innerHTML = generateSVGLineChart(trends.map(t => t.running_weighted_accuracy), "%", 0, 100, "#4f46e5");
+            speedContainer.innerHTML = generateSVGLineChart(trends.map(t => t.response_time), "s", 0, 180, "#0d9488");
+        }
+
+        function generateSVGLineChart(dataValues, unit, minY, maxY, strokeColor) {
+            const width = 360;
+            const height = 130;
+            const padding = 25;
+            const chartWidth = width - padding * 2;
+            const chartHeight = height - padding * 2;
+
+            if (dataValues.length === 1) {
+                dataValues = [dataValues[0], dataValues[0]];
+            }
+
+            const maxVal = Math.max(maxY, ...dataValues);
+            const minVal = Math.min(minY, ...dataValues);
+            const range = maxVal - minVal || 1;
+
+            const points = dataValues.map((val, idx) => {
+                const x = padding + (idx / (dataValues.length - 1)) * chartWidth;
+                const y = height - padding - ((val - minVal) / range) * chartHeight;
+                return { x, y, val };
+            });
+
+            const polylinePoints = points.map(p => `${p.x},${p.y}`).join(" ");
+            let circles = points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${strokeColor}" />`).join("");
+
+            return `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-full overflow-visible">
+                    <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#cbd5e1" stroke-width="1" />
+                    <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#cbd5e1" stroke-width="1" />
+                    
+                    <text x="${padding - 5}" y="${padding}" fill="#94a3b8" font-size="9" text-anchor="end">${maxVal}${unit}</text>
+                    <text x="${padding - 5}" y="${height - padding}" fill="#94a3b8" font-size="9" text-anchor="end">${minVal}${unit}</text>
+
+                    <polyline fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${polylinePoints}" />
+                    ${circles}
+                </svg>
+            `;
         }
 
         function toggleStudyPanel() {
@@ -959,7 +1202,6 @@
                 const userFieldId = `history-user-${index}`;
                 const contentFieldId = `history-content-${index}`;
 
-                // Option Breakdown list formatting
                 let optionsFormatted = '';
                 if (item.options && Array.isArray(item.options)) {
                     optionsFormatted = item.options.map(opt => {

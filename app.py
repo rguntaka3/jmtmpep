@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
-from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pathlib import Path
@@ -67,7 +67,6 @@ async def lifespan(app: FastAPI):
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
-            # Check question_history columns
             cursor.execute("PRAGMA table_info(question_history);")
             history_cols = [col[1] for col in cursor.fetchall()]
             if history_cols:
@@ -85,7 +84,6 @@ async def lifespan(app: FastAPI):
                     cursor.execute("ALTER TABLE question_history ADD COLUMN session_type TEXT DEFAULT 'practice';")
                 conn.commit()
 
-            # Check question_comments columns
             cursor.execute("PRAGMA table_info(question_comments);")
             comment_cols = [col[1] for col in cursor.fetchall()]
             if comment_cols and "username" not in comment_cols:
@@ -360,6 +358,124 @@ async def get_behavior_analytics(username: Optional[str] = None, db: Session = D
         "weighted_accuracy": round(weighted_accuracy, 2),
         "average_response_time_seconds": round(avg_response_time, 1)
     }
+
+@app.get("/analytics/trends")
+async def get_behavior_trends(username: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(QuestionHistoryDB)
+    if username:
+        query = query.filter(QuestionHistoryDB.username == username.strip().lower())
+    records = query.order_by(QuestionHistoryDB.id.asc()).all()
+
+    weights = {"easy": 1.0, "medium": 2.0, "hard": 3.0}
+    trend_data = []
+    
+    cumulative_weighted_score = 0.0
+    cumulative_weight = 0.0
+
+    for i, r in enumerate(records):
+        w = weights.get((r.difficulty or "easy").lower(), 1.0)
+        cumulative_weight += w
+        if r.is_correct:
+            cumulative_weighted_score += w
+        
+        running_accuracy = round((cumulative_weighted_score / cumulative_weight * 100), 1) if cumulative_weight > 0 else 0
+        
+        trend_data.append({
+            "attempt_number": i + 1,
+            "timestamp": r.timestamp,
+            "chapter": r.chapter,
+            "difficulty": r.difficulty,
+            "is_correct": r.is_correct,
+            "running_weighted_accuracy": running_accuracy,
+            "response_time": r.time_spent or 0
+        })
+
+    return trend_data
+
+# --- TEACHER VIEW ENDPOINTS ---
+@app.get("/analytics/teacher/summary")
+async def get_teacher_summary(db: Session = Depends(get_db)):
+    records = db.query(QuestionHistoryDB).all()
+    weights = {"easy": 1.0, "medium": 2.0, "hard": 3.0}
+    
+    total_attempts = len(records)
+    unique_users = len(set([r.username for r in records]))
+    
+    total_weighted_score = 0.0
+    total_weight = 0.0
+    total_time = 0
+
+    for r in records:
+        w = weights.get((r.difficulty or "easy").lower(), 1.0)
+        total_weight += w
+        if r.is_correct:
+            total_weighted_score += w
+        total_time += (r.time_spent or 0)
+
+    class_weighted_accuracy = (total_weighted_score / total_weight * 100) if total_weight > 0 else 0
+    class_avg_speed = (total_time / total_attempts) if total_attempts > 0 else 0
+
+    return {
+        "total_students": unique_users,
+        "total_class_attempts": total_attempts,
+        "class_weighted_accuracy": round(class_weighted_accuracy, 2),
+        "class_avg_speed": round(class_avg_speed, 1)
+    }
+
+@app.get("/analytics/teacher/users")
+async def get_teacher_per_user_analytics(db: Session = Depends(get_db)):
+    records = db.query(QuestionHistoryDB).all()
+    weights = {"easy": 1.0, "medium": 2.0, "hard": 3.0}
+    
+    user_map = {}
+    for r in records:
+        uname = r.username or "guest"
+        if uname not in user_map:
+            user_map[uname] = {
+                "username": uname,
+                "attempts": 0,
+                "weighted_score": 0.0,
+                "total_weight": 0.0,
+                "total_time": 0,
+                "history": [],
+                "last_active": r.timestamp
+            }
+        
+        w = weights.get((r.difficulty or "easy").lower(), 1.0)
+        user_map[uname]["attempts"] += 1
+        user_map[uname]["total_weight"] += w
+        if r.is_correct:
+            user_map[uname]["weighted_score"] += w
+        user_map[uname]["total_time"] += (r.time_spent or 0)
+        user_map[uname]["history"].append({"is_correct": r.is_correct, "difficulty": r.difficulty})
+        user_map[uname]["last_active"] = r.timestamp
+
+    user_list = []
+    for uname, data in user_map.items():
+        acc = (data["weighted_score"] / data["total_weight"] * 100) if data["total_weight"] > 0 else 0
+        speed = (data["total_time"] / data["attempts"]) if data["attempts"] > 0 else 0
+        
+        # Calculate running accuracy trend sequence for sparkline
+        c_score = 0.0
+        c_weight = 0.0
+        trend_seq = []
+        for h in data["history"]:
+            w = weights.get((h["difficulty"] or "easy").lower(), 1.0)
+            c_weight += w
+            if h["is_correct"]:
+                c_score += w
+            trend_seq.append(round((c_score / c_weight * 100), 1) if c_weight > 0 else 0)
+
+        user_list.append({
+            "username": uname,
+            "attempts": data["attempts"],
+            "weighted_accuracy": round(acc, 2),
+            "avg_response_time": round(speed, 1),
+            "accuracy_trend": trend_seq,
+            "last_active": data["last_active"]
+        })
+
+    return sorted(user_list, key=lambda x: x["attempts"], reverse=True)
 
 @app.get("/community-questions")
 async def get_community_questions(db: Session = Depends(get_db)):
