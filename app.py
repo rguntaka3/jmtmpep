@@ -24,6 +24,8 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from dotenv import load_dotenv
 
+from llmjudge import evaluate_generated_question
+
 load_dotenv()
 
 # --- Force Python to recognize .mjs as JavaScript ---
@@ -88,6 +90,19 @@ async def lifespan(app: FastAPI):
             comment_cols = [col[1] for col in cursor.fetchall()]
             if comment_cols and "username" not in comment_cols:
                 cursor.execute("ALTER TABLE question_comments ADD COLUMN username TEXT DEFAULT 'guest';")
+                conn.commit()
+
+            cursor.execute("PRAGMA table_info(reaction_surveys);")
+            reaction_cols = [col[1] for col in cursor.fetchall()]
+            if reaction_cols:
+                if "learning_effectiveness" not in reaction_cols:
+                    cursor.execute("ALTER TABLE reaction_surveys ADD COLUMN learning_effectiveness INTEGER DEFAULT 5;")
+                if "question_quality" not in reaction_cols:
+                    cursor.execute("ALTER TABLE reaction_surveys ADD COLUMN question_quality INTEGER DEFAULT 5;")
+                if "platform_usability" not in reaction_cols:
+                    cursor.execute("ALTER TABLE reaction_surveys ADD COLUMN platform_usability INTEGER DEFAULT 5;")
+                if "exam_confidence" not in reaction_cols:
+                    cursor.execute("ALTER TABLE reaction_surveys ADD COLUMN exam_confidence INTEGER DEFAULT 5;")
                 conn.commit()
 
             conn.close()
@@ -175,12 +190,10 @@ class ReactionSurveyDB(Base):
     __tablename__ = "reaction_surveys"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, default="guest")
-    ease_of_use = Column(Integer)
-    spaced_retention = Column(Integer)
-    scaffolded_questioning = Column(Integer)
-    pdf_viewer = Column(Integer)
-    review_history = Column(Integer)
-    forums = Column(Integer)
+    learning_effectiveness = Column(Integer, default=5)
+    question_quality = Column(Integer, default=5)
+    platform_usability = Column(Integer, default=5)
+    exam_confidence = Column(Integer, default=5)
     comments = Column(Text, nullable=True)
     timestamp = Column(String)
 
@@ -221,12 +234,10 @@ class CommentCreate(BaseModel):
 
 class ReactionSurveyCreate(BaseModel):
     username: Optional[str] = "guest"
-    ease_of_use: int
-    spaced_retention: int
-    scaffolded_questioning: int
-    pdf_viewer: int
-    review_history: int
-    forums: int
+    learning_effectiveness: int
+    question_quality: int
+    platform_usability: int
+    exam_confidence: int
     comments: Optional[str] = ""
 
 class ResultSurveyCreate(BaseModel):
@@ -303,18 +314,51 @@ async def post_comment(comment: CommentCreate, db: Session = Depends(get_db)):
 async def submit_reaction_survey(survey: ReactionSurveyCreate, db: Session = Depends(get_db)):
     db_survey = ReactionSurveyDB(
         username=survey.username or "guest",
-        ease_of_use=survey.ease_of_use,
-        spaced_retention=survey.spaced_retention,
-        scaffolded_questioning=survey.scaffolded_questioning,
-        pdf_viewer=survey.pdf_viewer,
-        review_history=survey.review_history,
-        forums=survey.forums,
+        learning_effectiveness=survey.learning_effectiveness,
+        question_quality=survey.question_quality,
+        platform_usability=survey.platform_usability,
+        exam_confidence=survey.exam_confidence,
         comments=survey.comments,
         timestamp=datetime.now().strftime("%I:%M:%S %p - %b %d")
     )
     db.add(db_survey)
     db.commit()
     return {"status": "success", "message": "Reaction survey saved successfully."}
+
+@app.get("/surveys/summary")
+async def get_survey_summary(db: Session = Depends(get_db)):
+    surveys = db.query(ReactionSurveyDB).all()
+    if not surveys:
+        return {
+            "avg_learning": 0.0,
+            "avg_quality": 0.0,
+            "avg_usability": 0.0,
+            "avg_confidence": 0.0,
+            "recent_comments": []
+        }
+    
+    total = len(surveys)
+    avg_learning = round(sum(s.learning_effectiveness or 5 for s in surveys) / total, 1)
+    avg_quality = round(sum(s.question_quality or 5 for s in surveys) / total, 1)
+    avg_usability = round(sum(s.platform_usability or 5 for s in surveys) / total, 1)
+    avg_confidence = round(sum(s.exam_confidence or 5 for s in surveys) / total, 1)
+    
+    recent_comments = [
+        {
+            "username": s.username,
+            "comment": s.comments,
+            "timestamp": s.timestamp
+        }
+        for s in surveys if s.comments and s.comments.strip()
+    ]
+    
+    return {
+        "avg_learning": avg_learning,
+        "avg_quality": avg_quality,
+        "avg_usability": avg_usability,
+        "avg_confidence": avg_confidence,
+        "recent_comments": recent_comments[::-1][:10]
+    }
 
 @app.post("/surveys/result")
 async def submit_result_survey(survey: ResultSurveyCreate, db: Session = Depends(get_db)):
@@ -455,7 +499,6 @@ async def get_teacher_per_user_analytics(db: Session = Depends(get_db)):
         acc = (data["weighted_score"] / data["total_weight"] * 100) if data["total_weight"] > 0 else 0
         speed = (data["total_time"] / data["attempts"]) if data["attempts"] > 0 else 0
         
-        # Calculate running accuracy trend sequence for sparkline
         c_score = 0.0
         c_weight = 0.0
         trend_seq = []
@@ -533,24 +576,25 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
     }.get(difficulty.lower(), "Difficulty: MEDIUM.")
 
     system_prompt = (
-        "You are an expert Patent Attorney and an official USPTO exam writer.\n"
-        f"Generate a multiple-choice question (MCQ) for the Patent Bar Exam strictly based on **Chapter {source_ch}** of the MPEP.\n\n"
-        f"{difficulty_instructions}\n"
-        f"{type_instructions}\n\n"
-        "Requirements:\n"
-        "1. Structure: Exactly 5 choices (A, B, C, D, E).\n"
-        f"2. Context Format: The `chapter_context` MUST explicitly cite an MPEP section or subsection belonging strictly to **Chapter {source_ch}** (e.g., MPEP § {source_ch}.01 – Specific Topic Title).\n"
-        "3. Option-by-Option Explanation: Inside the `explanation` field, provide a complete breakdown covering why the correct answer is right AND an itemized explanation for each option (A, B, C, D, E) referencing specific MPEP rules or statutes.\n\n"
-        "You MUST return your output as a raw JSON string matching this exact schema layout:\n"
-        "{\n"
-        f"  \"chapter_context\": \"MPEP § {source_ch}.XX – Topic Title\",\n"
-        f"  \"question_type\": \"{target_type}\",\n"
-        "  \"question_stem\": \"The question text...\",\n"
-        "  \"options\": [\"A. ...\", \"B. ...\", \"C. ...\", \"D. ...\", \"E. ...\"],\n"
-        "  \"correct_answer\": \"The correct letter option (e.g., C)\",\n"
-        "  \"explanation\": \"Overall summary citing MPEP section.\\n\\n• Choice A: Why incorrect/correct.\\n• Choice B: Why incorrect/correct.\\n• Choice C: Why incorrect/correct.\\n• Choice D: Why incorrect/correct.\\n• Choice E: Why incorrect/correct.\"\n"
-        "}"
-    )
+            "You are an official USPTO Patent Bar exam writer. "
+            f"Generate a multiple-choice question (MCQ) strictly and directly based on the provided text context from **Chapter {source_ch}** of the MPEP.\n\n"
+            f"{difficulty_instructions}\n"
+            f"{type_instructions}\n\n"
+            "CRITICAL RULES TO PREVENT FACTUAL ERRORS:\n"
+            "1. Do NOT invent legal exceptions, timelines, or procedural burdens that are not explicitly stated in the source text chunk.\n"
+            "2. Structure: Exactly 5 choices (A, B, C, D, E) where only ONE is definitively correct based on the text.\n"
+            f"3. Context Format: The `chapter_context` MUST explicitly cite the exact MPEP section present in the source text.\n"
+            "4. Strict Citation & Accuracy: The correct answer and explanation must rely exclusively on the text provided. Do not extrapolate rules from other chapters or general knowledge if they contradict the source text.\n\n"
+            "You MUST return your output as a raw JSON string matching this exact schema layout:\n"
+            "{\n"
+            f"  \"chapter_context\": \"MPEP § {source_ch}.XX – Topic Title\",\n"
+            f"  \"question_type\": \"{target_type}\",\n"
+            "  \"question_stem\": \"The question text...\",\n"
+            "  \"options\": [\"A. ...\", \"B. ...\", \"C. ...\", \"D. ...\", \"E. ...\"],\n"
+            "  \"correct_answer\": \"The correct letter option (e.g., C)\",\n"
+            "  \"explanation\": \"Overall summary citing MPEP section.\\n\\n• Choice A: Why incorrect/correct.\\n• Choice B: Why incorrect/correct.\\n• Choice C: Why incorrect/correct.\\n• Choice D: Why incorrect/correct.\\n• Choice E: Why incorrect/correct.\"\n"
+            "}"
+        )
 
     url = "https://api.groq.com/openai/v1/chat/completions"
     api_key = os.environ.get("GROQ_API_KEY")
@@ -587,6 +631,22 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
             normalized_data["options"] = [f"{k}. {v}" for k, v in normalized_data["options"].items()]
         if len(normalized_data["options"]) < 5:
             normalized_data["options"] = list(normalized_data["options"]) + ["Option text missing."] * (5 - len(normalized_data["options"]))
+
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            # 1. Generate question via RAG...
+            # 2. Run LLM Judge...
+            evaluation = await evaluate_generated_question(
+                question_stem=normalized_data["question_stem"],
+                options=normalized_data["options"],
+                correct_answer=normalized_data["correct_answer"],
+                explanation=normalized_data["explanation"],
+                source_context=combined_context
+            )
+            
+            if evaluation.get("is_valid", True) or attempt == max_retries:
+                break
+            print(f"⚠️ Attempt {attempt+1} flagged by judge. Regenerating... Reason: {evaluation.get('feedback')}")
 
         return QuestionResponse(**normalized_data)
     except Exception as e:

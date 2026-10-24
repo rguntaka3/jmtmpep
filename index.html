@@ -13,7 +13,7 @@
     <header class="bg-white border-b border-slate-200 py-2.5 px-6 shadow-xs sticky top-0 z-40">
         <div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-3">
             <h1 class="text-base sm:text-lg font-bold tracking-tight text-indigo-900 flex items-center gap-2 cursor-pointer" onclick="returnToLanding()">
-                ⚖️ USPTO Patent Bar Master Quiz 
+                USPTO Patent Bar Master Quiz 
                 <span class="hidden sm:inline-block text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 font-medium">Kirkpatrick Evaluation Edition</span>
             </h1>
             <div id="header-actions" class="flex items-center gap-3 flex-wrap">
@@ -34,11 +34,11 @@
                 </div>
 
                 <button onclick="showTeacherView()" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 px-3 py-1.5 rounded-lg border border-amber-300 font-semibold flex items-center gap-1.5 cursor-pointer transition">
-                    👩‍🏫 Teacher View
+                    Teacher View
                 </button>
 
                 <button onclick="showHistoryView()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 font-medium flex items-center gap-1.5 cursor-pointer transition">
-                    📜 Review & Analytics (<span id="history-count" class="font-bold">0</span>)
+                    Review & Analytics (<span id="history-count" class="font-bold">0</span>)
                 </button>
                 <div id="stats" class="text-xs sm:text-sm text-slate-600 hidden font-medium">
                     Score: <span id="score" class="text-emerald-600 font-bold">0</span> / <span id="total">0</span>
@@ -48,36 +48,51 @@
     </header>
 
     <!-- Main Content Area -->
-    <main id="main-container" class="max-w-3xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-center transition-all duration-300">
+    <main id="main-container" class="max-w-3xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-start items-start transition-all duration-300">
         
-        <!-- LANDING PAGE -->
-        <div id="landing-view" class="w-full space-y-6 my-auto">
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+        <!-- LANDING PAGE WITH STABLE TABBED NAVIGATION -->
+        <div id="landing-view" class="w-full space-y-4 my-2">
+            
+            <!-- Fixed Tab Navigation Bar -->
+            <div class="flex bg-slate-200 p-1 rounded-xl gap-1 text-xs font-semibold w-full">
+                <button onclick="switchLandingTab('setup')" id="tab-btn-setup" class="flex-1 py-2 rounded-lg bg-indigo-600 text-white transition cursor-pointer shadow-xs font-bold">
+                    Quiz Setup
+                </button>
+                <button onclick="switchLandingTab('community')" id="tab-btn-community" class="flex-1 py-2 rounded-lg text-slate-700 hover:text-indigo-900 transition cursor-pointer font-semibold">
+                    Community Discussions
+                </button>
+                <button onclick="switchLandingTab('outcome')" id="tab-btn-outcome" class="flex-1 py-2 rounded-lg text-slate-700 hover:text-indigo-900 transition cursor-pointer font-semibold">
+                    Report actual exam result
+                </button>
+            </div>
+
+            <!-- TAB 1: QUIZ SETUP CONTENT -->
+            <div id="landing-tab-setup" class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 min-h-[460px]">
                 <div>
                     <h2 class="text-xl font-bold text-slate-900 mb-1">Quiz Session Setup</h2>
-                    <p class="text-sm text-slate-500">Select training mode, baseline testing, or post-exam outcome reporting.</p>
+                    <p class="text-sm text-slate-500">Select training mode, baseline testing, or practice exams.</p>
                 </div>
                 
                 <!-- Mode Selection Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div onclick="setMode('dynamic')" id="mode-card-dynamic" class="p-3.5 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all">
-                        <h3 class="text-xs font-bold text-indigo-900 mb-0.5">🎲 GenAI Practice</h3>
+                        <h3 class="text-xs font-bold text-indigo-900 mb-0.5">GenAI Practice</h3>
                         <p class="text-[11px] text-slate-500">Fresh RAG practice questions.</p>
                     </div>
 
                     <div onclick="setMode('spaced')" id="mode-card-spaced" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
-                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">🔄 Spaced Repetition</h3>
+                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">Spaced Repetition</h3>
                         <p class="text-[11px] text-slate-500">Targeted review of missed items.</p>
                     </div>
 
                     <div onclick="setMode('baseline')" id="mode-card-baseline" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
-                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">🎯 Diagnostic Baseline</h3>
-                        <p class="text-[11px] text-slate-500">Initial assessment & bi-weekly check.</p>
+                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">Diagnostic Baseline</h3>
+                        <p class="text-[11px] text-slate-500">Initial assessment & check.</p>
                     </div>
 
                     <div onclick="setMode('exam')" id="mode-card-exam" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
-                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">🎓 Full Exam (100 Qs / 3 Hrs)</h3>
-                        <p class="text-[11px] text-slate-500">Simulated 3-hr bar exam + Survey.</p>
+                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">Full Exam (100 Qs / 3 Hrs)</h3>
+                        <p class="text-[11px] text-slate-500">Simulated 3-hr bar exam.</p>
                     </div>
                 </div>
 
@@ -90,15 +105,15 @@
                 </div>
 
                 <button onclick="startQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition duration-200 cursor-pointer shadow-sm text-sm">
-                    Start Session 🚀
+                    Start Session
                 </button>
             </div>
 
-            <!-- COMMUNITY DISCUSSION SECTION -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
+            <!-- TAB 2: COMMUNITY DISCUSSION SECTION -->
+            <div id="landing-tab-community" class="hidden bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-4 min-h-[460px]">
                 <div class="border-b border-slate-100 pb-3">
                     <h3 class="text-base font-bold text-indigo-900 flex items-center gap-2">
-                        💬 Community Question Discussions
+                        Community Question Discussions
                     </h3>
                     <p class="text-xs text-slate-500">Participate in discussions, ask questions, and share mental models on recent practice questions.</p>
                 </div>
@@ -107,12 +122,22 @@
                 </div>
             </div>
 
-            <!-- Level 4 Result Reporting Card -->
-            <div class="bg-indigo-900 text-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
-                <h3 class="text-base font-bold flex items-center gap-2">🏆 Official Patent Bar Exam Follow-Up (Level 4 Results)</h3>
-                <p class="text-xs text-indigo-200 leading-relaxed">Took the real USPTO Patent Bar Exam? Report your real-world outcome to help measure platform efficacy.</p>
-                <button onclick="openResultSurveyModal()" class="bg-white text-indigo-900 hover:bg-indigo-50 font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer">
-                    Submit Real-World Exam Outcome 📝
+            <!-- TAB 3: REPORT ACTUAL EXAM RESULT -->
+            <div id="landing-tab-outcome" class="hidden bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 min-h-[460px] flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div class="border-b border-slate-100 pb-3">
+                        <h3 class="text-base font-bold text-indigo-900">Official Patent Bar Exam Follow-Up</h3>
+                        <p class="text-xs text-slate-500">Took the real USPTO Patent Bar Exam? Report your real-world outcome to help measure platform efficacy.</p>
+                    </div>
+
+                    <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs text-indigo-950 space-y-2">
+                        <h4 class="font-bold text-indigo-900">Why submit your exam score?</h4>
+                        <p class="leading-relaxed">Your outcome data powers our platform performance analytics (Kirkpatrick Level 4 evaluation). It allows us to continuously optimize GenAI question models based on actual exam pass rates.</p>
+                    </div>
+                </div>
+
+                <button onclick="openResultSurveyModal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl text-xs transition cursor-pointer shadow-xs">
+                    Report actual exam result
                 </button>
             </div>
         </div>
@@ -132,10 +157,10 @@
                                 <span id="badge-context" class="text-[11px] bg-indigo-50 text-indigo-800 border border-indigo-200 px-2.5 py-0.5 rounded-full font-medium">Context</span>
                                 <span id="badge-type" class="text-[11px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold uppercase">Procedural</span>
                                 <span id="badge-difficulty" class="text-[11px] bg-slate-100 text-slate-700 border border-slate-300 px-2 py-0.5 rounded-full font-semibold uppercase">Easy</span>
-                                <span id="timer-badge" class="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold">⏱️ <span id="timer-display">03:00</span></span>
+                                <span id="timer-badge" class="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold">Timer: <span id="timer-display">03:00</span></span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button onclick="toggleStudyPanel()" id="study-panel-btn" class="text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-lg font-medium transition cursor-pointer">📖 <span id="study-btn-text">Hide PDF</span></button>
+                                <button onclick="toggleStudyPanel()" id="study-panel-btn" class="text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-lg font-medium transition cursor-pointer"><span id="study-btn-text">Hide PDF</span></button>
                                 <button onclick="returnToLanding()" class="text-[11px] text-slate-400 hover:text-slate-700 underline cursor-pointer">End Session</button>
                             </div>
                         </div>
@@ -151,13 +176,13 @@
                     </div>
 
                     <div class="flex justify-end pt-2 border-t border-slate-100">
-                        <button id="next-btn" onclick="fetchNewQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition duration-200 cursor-pointer shadow-xs text-xs">Next Question 🚀</button>
+                        <button id="next-btn" onclick="fetchNewQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition duration-200 cursor-pointer shadow-xs text-xs">Next Question</button>
                     </div>
                 </div>
 
                 <div id="pdf-study-panel" class="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col h-[calc(100vh-110px)] overflow-hidden">
                     <div class="flex justify-between items-center px-4 py-2 bg-slate-50 border-b border-slate-200 gap-2">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5 shrink-0">📄 Chapter <span id="pdf-chapter-label">Chapter</span> Viewer</h3>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5 shrink-0">Chapter <span id="pdf-chapter-label">Chapter</span> Viewer</h3>
                         <button onclick="toggleStudyPanel()" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer shrink-0 p-1">✕</button>
                     </div>
                     <iframe id="pdf-iframe" src="" class="w-full flex-grow bg-white border-0" title="MPEP Chapter PDF"></iframe>
@@ -170,8 +195,8 @@
             <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
                 <div class="flex justify-between items-center border-b border-slate-200 pb-4 flex-wrap gap-4">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 Instructor Analytics & Class Performance</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">Overview of student activity, difficulty-weighted accuracy, and per-user performance trends.</p>
+                        <h2 class="text-xl font-bold text-slate-900">Instructor Analytics & Class Performance</h2>
+                        <p class="text-xs sm:text-sm text-slate-500">Overview of student activity, difficulty-weighted accuracy, and student feedback survey results.</p>
                     </div>
                     <button onclick="returnToLanding()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer shadow-xs">← Back to Dashboard</button>
                 </div>
@@ -193,6 +218,46 @@
                     <div>
                         <span class="text-amber-800/70 block font-medium">Class Avg Speed</span>
                         <span id="teacher-class-speed" class="text-lg font-bold text-amber-950">0.0s</span>
+                    </div>
+                </div>
+
+                <!-- SURVEY FEEDBACK & OUTCOMES PANEL -->
+                <div class="bg-indigo-50/60 border border-indigo-100 p-5 rounded-2xl space-y-4">
+                    <div class="flex justify-between items-center border-b border-indigo-100 pb-3 flex-wrap gap-2">
+                        <h3 class="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                            Student Survey Feedback & Learning Impact
+                        </h3>
+                        <span class="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full">
+                            Kirkpatrick Levels 1 & 4
+                        </span>
+                    </div>
+
+                    <!-- Rating Metrics Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                        <div class="bg-white p-3 rounded-xl border border-indigo-100 shadow-2xs">
+                            <span class="text-slate-500 block">Overall Learning Effectiveness</span>
+                            <span id="survey-avg-learning" class="text-lg font-bold text-indigo-900">0.0 / 5</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-indigo-100 shadow-2xs">
+                            <span class="text-slate-500 block">Question & Rationale Quality</span>
+                            <span id="survey-avg-quality" class="text-lg font-bold text-indigo-900">0.0 / 5</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-indigo-100 shadow-2xs">
+                            <span class="text-slate-500 block">Platform Usability</span>
+                            <span id="survey-avg-usability" class="text-lg font-bold text-indigo-900">0.0 / 5</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-indigo-100 shadow-2xs">
+                            <span class="text-slate-500 block">Exam Readiness & Confidence</span>
+                            <span id="survey-avg-confidence" class="text-lg font-bold text-indigo-900">0.0 / 5</span>
+                        </div>
+                    </div>
+
+                    <!-- Recent Feedback Comments Feed -->
+                    <div class="bg-white p-4 rounded-xl border border-indigo-100 space-y-2">
+                        <h4 class="text-xs font-bold text-indigo-900">Recent Student Comments & Written Feedback</h4>
+                        <div id="survey-comments-feed" class="space-y-2 max-h-44 overflow-y-auto pr-1 text-xs text-slate-600">
+                            <p class="text-slate-400 italic">Loading student survey comments...</p>
+                        </div>
                     </div>
                 </div>
 
@@ -252,7 +317,7 @@
 
                 <!-- TREND VISUALIZATION SECTION -->
                 <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-2xs">
-                    <h3 class="text-sm font-bold text-indigo-900 flex items-center gap-2">📈 Performance & Response Time Trends</h3>
+                    <h3 class="text-sm font-bold text-indigo-900 flex items-center gap-2">Performance & Response Time Trends</h3>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                             <h4 class="text-xs font-bold text-slate-700">Running Weighted Accuracy Trend (%)</h4>
@@ -268,7 +333,7 @@
                 <div class="flex justify-between items-center text-xs flex-wrap gap-3">
                     <div class="flex gap-1.5">
                         <button onclick="switchModalView('list')" id="tab-list" class="px-3.5 py-2 rounded-lg bg-indigo-600 text-white font-semibold cursor-pointer shadow-xs">Question Logs & Discussions</button>
-                        <button onclick="switchModalView('summary')" id="tab-summary" class="px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer">📊 Chapter Summary</button>
+                        <button onclick="switchModalView('summary')" id="tab-summary" class="px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer">Chapter Summary</button>
                     </div>
                     <button onclick="clearHistory()" class="text-rose-600 hover:text-rose-800 underline font-medium cursor-pointer">Clear History</button>
                 </div>
@@ -284,45 +349,68 @@
         </div>
     </main>
 
-    <!-- REACTION SURVEY MODAL -->
+    <!-- SIMPLIFIED REACTION SURVEY MODAL -->
     <div id="reaction-modal" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl">
-            <h3 class="text-lg font-bold text-indigo-900">🎓 Kirkpatrick Level 1: Reaction Survey</h3>
-            <p class="text-xs text-slate-500">Please rate platform features based on your full exam experience (1 = Poor, 5 = Excellent).</p>
+            <div class="border-b border-slate-100 pb-2">
+                <h3 class="text-lg font-bold text-indigo-900">Quick Platform Feedback</h3>
+                <p class="text-xs text-slate-500">Help us gauge how effective this platform is for your learning (1 = Poor, 5 = Excellent).</p>
+            </div>
             
-            <div class="space-y-3 text-xs">
+            <div class="space-y-3.5 text-xs">
                 <div>
-                    <label class="font-semibold text-slate-700 block">Ease of Use</label>
-                    <input type="number" min="1" max="5" value="5" id="survey-ease" class="w-full p-2 border rounded-lg">
+                    <label class="font-semibold text-slate-800 block mb-1">1. How effective was this session for learning MPEP concepts?</label>
+                    <select id="survey-learning" class="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white text-slate-800 font-medium">
+                        <option value="5" selected>5 - Extremely Effective</option>
+                        <option value="4">4 - Effective</option>
+                        <option value="3">3 - Moderately Effective</option>
+                        <option value="2">2 - Slightly Effective</option>
+                        <option value="1">1 - Not Effective</option>
+                    </select>
                 </div>
+
                 <div>
-                    <label class="font-semibold text-slate-700 block">Spaced Retention</label>
-                    <input type="number" min="1" max="5" value="5" id="survey-spaced" class="w-full p-2 border rounded-lg">
+                    <label class="font-semibold text-slate-800 block mb-1">2. How clear and helpful were the questions and explanations?</label>
+                    <select id="survey-quality" class="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white text-slate-800 font-medium">
+                        <option value="5" selected>5 - Very Clear & Helpful</option>
+                        <option value="4">4 - Clear</option>
+                        <option value="3">3 - Neutral</option>
+                        <option value="2">2 - Confusing</option>
+                        <option value="1">1 - Not Helpful</option>
+                    </select>
                 </div>
+
                 <div>
-                    <label class="font-semibold text-slate-700 block">Scaffolded Questioning</label>
-                    <input type="number" min="1" max="5" value="5" id="survey-scaffold" class="w-full p-2 border rounded-lg">
+                    <label class="font-semibold text-slate-800 block mb-1">3. How easy and intuitive is the platform to navigate?</label>
+                    <select id="survey-usability" class="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white text-slate-800 font-medium">
+                        <option value="5" selected>5 - Very Easy to Use</option>
+                        <option value="4">4 - Easy</option>
+                        <option value="3">3 - Average</option>
+                        <option value="2">2 - Clunky</option>
+                        <option value="1">1 - Difficult</option>
+                    </select>
                 </div>
+
                 <div>
-                    <label class="font-semibold text-slate-700 block">PDF Viewer</label>
-                    <input type="number" min="1" max="5" value="5" id="survey-pdf" class="w-full p-2 border rounded-lg">
+                    <label class="font-semibold text-slate-800 block mb-1">4. How much is this platform building your exam confidence?</label>
+                    <select id="survey-confidence" class="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white text-slate-800 font-medium">
+                        <option value="5" selected>5 - Greatly Increases Confidence</option>
+                        <option value="4">4 - Increases Confidence</option>
+                        <option value="3">3 - Neutral</option>
+                        <option value="2">2 - Slightly</option>
+                        <option value="1">1 - No Impact</option>
+                    </select>
                 </div>
+
                 <div>
-                    <label class="font-semibold text-slate-700 block">Review History</label>
-                    <input type="number" min="1" max="5" value="5" id="survey-history" class="w-full p-2 border rounded-lg">
-                </div>
-                <div>
-                    <label class="font-semibold text-slate-700 block">Forums & Discussions</label>
-                    <input type="number" min="1" max="5" value="5" id="survey-forums" class="w-full p-2 border rounded-lg">
-                </div>
-                <div>
-                    <label class="font-semibold text-slate-700 block">Additional Comments</label>
-                    <textarea id="survey-comments" class="w-full p-2 border rounded-lg" placeholder="Optional comments..."></textarea>
+                    <label class="font-semibold text-slate-800 block mb-1">Any suggestions to make learning better? (Optional)</label>
+                    <textarea id="survey-comments" class="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white text-slate-800 h-20 resize-none" placeholder="What helped you most, or what could be improved?"></textarea>
                 </div>
             </div>
 
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="submitReactionSurvey()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">Submit & Finish</button>
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onclick="closeReactionSurveyModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer">Skip</button>
+                <button onclick="submitReactionSurvey()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer shadow-sm">Submit Feedback</button>
             </div>
         </div>
     </div>
@@ -330,7 +418,7 @@
     <!-- RESULT SURVEY MODAL -->
     <div id="result-modal" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl">
-            <h3 class="text-lg font-bold text-indigo-900">🏆 Kirkpatrick Level 4: Real-World Exam Outcome</h3>
+            <h3 class="text-lg font-bold text-indigo-900">Kirkpatrick Level 4: Real-World Exam Outcome</h3>
             <p class="text-xs text-slate-500">Report your real-world performance on the USPTO Patent Bar Exam.</p>
             
             <div class="space-y-3 text-xs">
@@ -401,6 +489,20 @@
             fetchAvailableChapters();
             loadCommunityDiscussions();
         });
+
+        function switchLandingTab(tabKey) {
+            ['setup', 'community', 'outcome'].forEach(k => {
+                const btn = document.getElementById(`tab-btn-${k}`);
+                const content = document.getElementById(`landing-tab-${k}`);
+                if (k === tabKey) {
+                    btn.className = "flex-1 py-2 rounded-lg bg-indigo-600 text-white transition cursor-pointer shadow-xs font-bold";
+                    content.classList.remove("hidden");
+                } else {
+                    btn.className = "flex-1 py-2 rounded-lg text-slate-700 hover:text-indigo-900 transition cursor-pointer font-semibold";
+                    content.classList.add("hidden");
+                }
+            });
+        }
 
         function checkUserSession() {
             const loginWrapper = document.getElementById("google-login-btn-wrapper");
@@ -520,7 +622,7 @@
             document.getElementById("teacher-view").classList.add("hidden");
             document.getElementById("quiz-view").classList.remove("hidden");
             document.getElementById("stats").classList.remove("hidden");
-            document.getElementById("main-container").className = "max-w-7xl w-full mx-auto p-2 sm:p-4 flex-grow flex flex-col justify-center transition-all duration-300";
+            document.getElementById("main-container").className = "max-w-7xl w-full mx-auto p-2 sm:p-4 flex-grow flex flex-col justify-start transition-all duration-300";
             document.getElementById("score").innerText = "0";
             document.getElementById("total").innerText = "0";
             
@@ -535,7 +637,7 @@
                 examSecondsRemaining--;
                 if (examSecondsRemaining <= 0) {
                     clearInterval(examTimerInterval);
-                    alert("⏰ Time's up! Your 3-hour exam session has ended.");
+                    alert("Time's up! Your 3-hour exam session has ended.");
                     openReactionSurveyModal();
                 }
             }, 1000);
@@ -571,7 +673,7 @@
                 btn.disabled = true;
             }
 
-            showAdaptiveNotice("⏰ Time expired (180 seconds limit reached).", "down");
+            showAdaptiveNotice("Time expired (180 seconds limit reached).", "down");
             document.getElementById("explanation-box").classList.remove("hidden");
 
             await fetch(`${API_BASE}/history`, {
@@ -598,7 +700,22 @@
             document.getElementById("total").innerText = totalAnswered;
         }
 
+        function shouldPromptReactionSurvey() {
+            const lastSubmitted = localStorage.getItem("mpep_last_survey_date");
+            if (!lastSubmitted) return true;
+            
+            const daysSince = (new Date() - new Date(lastSubmitted)) / (1000 * 60 * 60 * 24);
+            return daysSince >= 7;
+        }
+
         function returnToLanding() {
+            if (totalAnswered >= 5 && shouldPromptReactionSurvey()) {
+                if (confirm("Would you like to leave quick feedback on this study session?")) {
+                    openReactionSurveyModal();
+                    return;
+                }
+            }
+
             inspectedUser = null;
             if (questionTimerInterval) clearInterval(questionTimerInterval);
             if (examTimerInterval) clearInterval(examTimerInterval);
@@ -607,7 +724,7 @@
             document.getElementById("teacher-view").classList.add("hidden");
             document.getElementById("stats").classList.add("hidden");
             document.getElementById("landing-view").classList.remove("hidden");
-            document.getElementById("main-container").className = "max-w-3xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-center transition-all duration-300";
+            document.getElementById("main-container").className = "max-w-3xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-start items-start transition-all duration-300";
             fetchHistoryCount();
             loadCommunityDiscussions();
         }
@@ -637,6 +754,7 @@
             document.getElementById("main-container").className = "max-w-5xl w-full mx-auto p-4 sm:p-6 flex-grow flex flex-col transition-all duration-300";
 
             await loadTeacherData();
+            await loadSurveySummaryData();
         }
 
         async function loadTeacherData() {
@@ -683,6 +801,34 @@
                     });
                 }
             } catch (err) { console.error("Failed to load teacher analytics:", err); }
+        }
+
+        async function loadSurveySummaryData() {
+            try {
+                const res = await fetch(`${API_BASE}/surveys/summary`);
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById("survey-avg-learning").innerText = `${data.avg_learning || 0.0} / 5`;
+                    document.getElementById("survey-avg-quality").innerText = `${data.avg_quality || 0.0} / 5`;
+                    document.getElementById("survey-avg-usability").innerText = `${data.avg_usability || 0.0} / 5`;
+                    document.getElementById("survey-avg-confidence").innerText = `${data.avg_confidence || 0.0} / 5`;
+
+                    const commentsFeed = document.getElementById("survey-comments-feed");
+                    if (data.recent_comments && data.recent_comments.length > 0) {
+                        commentsFeed.innerHTML = data.recent_comments.map(c => `
+                            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                                <div class="flex justify-between items-center text-[10px] text-slate-400 font-medium mb-1">
+                                    <span class="font-bold text-indigo-900">@${escapeHtml(c.username || 'student')}</span>
+                                    <span>${c.timestamp || 'Recent'}</span>
+                                </div>
+                                <p class="text-slate-700">${escapeHtml(c.comment)}</p>
+                            </div>
+                        `).join('');
+                    } else {
+                        commentsFeed.innerHTML = `<p class="text-slate-400 italic">No student comments submitted yet.</p>`;
+                    }
+                }
+            } catch (err) { console.error("Failed to load survey summary:", err); }
         }
 
         function generateSparkline(trendSeq) {
@@ -828,7 +974,7 @@
         function updateTypeBadge(qType) {
             const badge = document.getElementById("badge-type");
             const isProcedural = (qType || "procedural").toLowerCase() === "procedural";
-            badge.innerText = isProcedural ? "⚡ Procedural" : "🧠 Substantive";
+            badge.innerText = isProcedural ? "Procedural" : "Substantive";
             badge.className = isProcedural ? "text-[11px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold" : "text-[11px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-semibold";
         }
 
@@ -895,7 +1041,7 @@
                 });
 
                 document.getElementById("explanation-text").innerText = data.explanation;
-                nextBtn.innerText = sessionMode === 'exam' && examCurrentIndex === examTotalQuestions ? "Finish Exam 🏁" : "Next Question 🚀";
+                nextBtn.innerText = sessionMode === 'exam' && examCurrentIndex === examTotalQuestions ? "Finish Exam" : "Next Question";
                 startQuestionTimer();
             } catch (err) {
                 console.error(err);
@@ -967,6 +1113,19 @@
             document.getElementById("reaction-modal").classList.remove("hidden");
         }
 
+        function closeReactionSurveyModal() {
+            document.getElementById("reaction-modal").classList.add("hidden");
+            
+            inspectedUser = null;
+            document.getElementById("history-view").classList.add("hidden");
+            document.getElementById("teacher-view").classList.add("hidden");
+            document.getElementById("stats").classList.add("hidden");
+            document.getElementById("landing-view").classList.remove("hidden");
+            document.getElementById("main-container").className = "max-w-3xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-start items-start transition-all duration-300";
+            fetchHistoryCount();
+            loadCommunityDiscussions();
+        }
+
         async function submitReactionSurvey() {
             try {
                 await fetch(`${API_BASE}/surveys/reaction`, {
@@ -974,18 +1133,18 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         username: getActiveUsername(),
-                        ease_of_use: parseInt(document.getElementById("survey-ease").value),
-                        spaced_retention: parseInt(document.getElementById("survey-spaced").value),
-                        scaffolded_questioning: parseInt(document.getElementById("survey-scaffold").value),
-                        pdf_viewer: parseInt(document.getElementById("survey-pdf").value),
-                        review_history: parseInt(document.getElementById("survey-history").value),
-                        forums: parseInt(document.getElementById("survey-forums").value),
+                        learning_effectiveness: parseInt(document.getElementById("survey-learning").value),
+                        question_quality: parseInt(document.getElementById("survey-quality").value),
+                        platform_usability: parseInt(document.getElementById("survey-usability").value),
+                        exam_confidence: parseInt(document.getElementById("survey-confidence").value),
                         comments: document.getElementById("survey-comments").value
                     })
                 });
-                alert("Thank you! Reaction survey recorded.");
-                document.getElementById("reaction-modal").classList.add("hidden");
-                returnToLanding();
+                
+                localStorage.setItem("mpep_last_survey_date", new Date().toISOString());
+                
+                alert("Thank you! Your feedback has been recorded.");
+                closeReactionSurveyModal();
             } catch (err) { alert("Failed to submit reaction survey."); }
         }
 
@@ -1138,12 +1297,12 @@
                         <p class="text-slate-900 font-semibold leading-relaxed">${q.stem}</p>
                         
                         <details class="text-xs text-slate-600 cursor-pointer">
-                            <summary class="font-bold text-indigo-700 hover:text-indigo-900 transition-colors">📖 View Rationale & Explanation</summary>
+                            <summary class="font-bold text-indigo-700 hover:text-indigo-900 transition-colors">View Rationale & Explanation</summary>
                             <p class="text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-200 mt-2 whitespace-pre-line text-xs">${q.explanation}</p>
                         </details>
 
                         <div class="bg-white border border-indigo-100 p-3 rounded-xl space-y-2.5 mt-2">
-                            <h4 class="font-bold text-indigo-900 text-xs">💬 Discussion Thread</h4>
+                            <h4 class="font-bold text-indigo-900 text-xs">Discussion Thread</h4>
                             <div id="${commentsFeedId}" class="space-y-2 max-h-40 overflow-y-auto pr-1">
                                 <p class="text-xs text-slate-400 italic">Loading comments...</p>
                             </div>
@@ -1189,14 +1348,14 @@
                 card.className = "bg-white border border-slate-200 rounded-xl p-5 text-xs sm:text-sm space-y-3 shadow-xs";
 
                 const badge = item.isCorrect 
-                    ? `<span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-semibold">✓ Correct</span>`
-                    : `<span class="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full font-semibold">✗ Incorrect</span>`;
+                    ? `<span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-semibold">Correct</span>`
+                    : `<span class="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full font-semibold">Incorrect</span>`;
 
                 const typeBadge = (item.question_type || 'procedural').toLowerCase() === 'procedural'
                     ? `<span class="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-semibold">Procedural</span>`
                     : `<span class="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full font-semibold">Substantive</span>`;
 
-                const timeSpentStr = item.timeSpent ? `⏱️ ${item.timeSpent}s spent` : '';
+                const timeSpentStr = item.timeSpent ? `${item.timeSpent}s spent` : '';
                 const qHash = hashCode(item.stem);
                 const commentsFeedId = `history-comments-${index}`;
                 const userFieldId = `history-user-${index}`;
@@ -1238,13 +1397,13 @@
 
                     <div class="pt-2">
                         <details class="text-xs text-slate-600 cursor-pointer" open>
-                            <summary class="font-bold text-indigo-700 hover:text-indigo-900 transition-colors mb-2">📖 Explanation & Option-by-Option Rationale</summary>
+                            <summary class="font-bold text-indigo-700 hover:text-indigo-900 transition-colors mb-2">Explanation & Option-by-Option Rationale</summary>
                             <p class="text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200 whitespace-pre-line text-xs sm:text-sm">${item.explanation}</p>
                         </details>
                     </div>
                     
                     <div class="bg-indigo-50/60 border border-indigo-100 p-4 rounded-xl space-y-3 mt-4">
-                        <h4 class="font-bold text-indigo-900 text-xs flex items-center gap-1.5">💬 Community Discussion & Notes</h4>
+                        <h4 class="font-bold text-indigo-900 text-xs flex items-center gap-1.5">Community Discussion & Notes</h4>
                         <div id="${commentsFeedId}" class="space-y-2 max-h-48 overflow-y-auto pr-1">
                             <p class="text-xs text-slate-400 italic">Loading discussion threads...</p>
                         </div>
@@ -1300,7 +1459,7 @@
 
                 let html = `
                     <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                        <h4 class="text-sm sm:text-base font-bold text-indigo-900">📂 ${chapterName}</h4>
+                        <h4 class="text-sm sm:text-base font-bold text-indigo-900">${chapterName}</h4>
                         <span class="text-[11px] px-2.5 py-0.5 rounded-full font-bold ${
                             chAccuracy >= 75 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
                             chAccuracy >= 40 ? 'bg-amber-50 text-amber-800 border border-amber-200' :
@@ -1315,7 +1474,7 @@
                     html += `
                         <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1.5">
                             <div class="flex justify-between items-center">
-                                <span class="text-slate-800 font-semibold text-sm">📌 ${topicName}</span>
+                                <span class="text-slate-800 font-semibold text-sm">${topicName}</span>
                                 <span class="font-bold ${tAccuracy >= 75 ? 'text-emerald-700' : tAccuracy >= 40 ? 'text-amber-700' : 'text-rose-700'}">${tAccuracy}% (${tStats.correct}/${tStats.total})</span>
                             </div>
                             <div class="grid grid-cols-3 gap-2 text-slate-500 text-xs">
