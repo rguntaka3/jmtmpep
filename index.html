@@ -173,9 +173,24 @@
                             <h3 class="text-[10px] font-bold uppercase tracking-wider text-indigo-900">MPEP Rationale & Citation</h3>
                             <p id="explanation-text" class="text-xs text-slate-700 leading-relaxed whitespace-pre-line"></p>
                         </div>
+
+                        <!-- LIVE QUESTION DISCUSSION CONTAINER -->
+                        <div id="active-question-discussion" class="hidden bg-indigo-50/60 border border-indigo-100 rounded-xl p-3.5 space-y-2.5 mt-3">
+                            <h3 class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">Community Notes & Discussion</h3>
+                            <div id="active-discussion-feed" class="space-y-2 max-h-36 overflow-y-auto pr-1">
+                                <p class="text-xs text-slate-400 italic">Loading comments...</p>
+                            </div>
+                            <form id="active-discussion-form" onsubmit="submitActiveDiscussion(event)" class="space-y-2 pt-1 border-t border-indigo-100">
+                                <input type="text" id="active-comment-user" placeholder="Your name" class="w-full text-xs p-2 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <div class="flex gap-2">
+                                    <input type="text" id="active-comment-content" placeholder="Ask a question or share a thought..." required class="flex-grow text-xs p-2 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer">Post</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
 
-                    <div class="flex justify-end pt-2 border-t border-slate-100">
+                    <div id="action-buttons-container" class="flex justify-end pt-3 border-t border-slate-100 mt-2">
                         <button id="next-btn" onclick="fetchNewQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition duration-200 cursor-pointer shadow-xs text-xs">Next Question</button>
                     </div>
                 </div>
@@ -676,6 +691,14 @@
             showAdaptiveNotice("Time expired (180 seconds limit reached).", "down");
             document.getElementById("explanation-box").classList.remove("hidden");
 
+            // Display live discussion box upon revealing answer
+            document.getElementById("active-question-discussion").classList.remove("hidden");
+            const qHash = hashCode(currentQuestion.question_stem);
+            loadActiveDiscussion(qHash);
+
+            // Auto-scroll to make the action buttons easily visible without manual scrolling
+            document.getElementById("action-buttons-container").scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
             await fetch(`${API_BASE}/history`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -997,10 +1020,12 @@
             const loadingState = document.getElementById("loading-state");
             const quizCard = document.getElementById("quiz-card");
             const explanationBox = document.getElementById("explanation-box");
+            const activeDiscussionBox = document.getElementById("active-question-discussion");
             const nextBtn = document.getElementById("next-btn");
 
             isAnswered = false;
             explanationBox.classList.add("hidden");
+            activeDiscussionBox.classList.add("hidden");
             document.getElementById("adaptive-banner").classList.add("hidden");
             quizCard.style.opacity = "0.5";
             loadingState.classList.remove("hidden");
@@ -1082,6 +1107,14 @@
                 document.getElementById("explanation-box").classList.remove("hidden");
             }
 
+            // Reveal and load active community discussion feed for this question
+            document.getElementById("active-question-discussion").classList.remove("hidden");
+            const qHash = hashCode(currentQuestion.question_stem);
+            loadActiveDiscussion(qHash);
+
+            // Auto-scroll down smoothly so the action buttons and next question button are immediately visible
+            document.getElementById("action-buttons-container").scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
             await fetch(`${API_BASE}/history`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1104,6 +1137,61 @@
             await fetchHistoryCount();
             document.getElementById("score").innerText = score;
             document.getElementById("total").innerText = totalAnswered;
+        }
+
+        async function loadActiveDiscussion(questionHash) {
+            const feed = document.getElementById("active-discussion-feed");
+            const userField = document.getElementById("active-comment-user");
+            if (currentUser && currentUser.username && !userField.value) {
+                userField.value = currentUser.username;
+            }
+            feed.innerHTML = "<p class='text-xs text-slate-400 italic'>Loading comments...</p>";
+
+            try {
+                const response = await fetch(`${API_BASE}/comments/${questionHash}`);
+                const comments = await response.json();
+
+                if (comments.length === 0) {
+                    feed.innerHTML = '<p class="text-xs text-slate-400 italic">No comments yet. Be the first to share your thoughts!</p>';
+                    return;
+                }
+
+                feed.innerHTML = comments.map(c => `
+                    <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-xs space-y-1 shadow-2xs">
+                        <div class="flex justify-between text-[10px] text-slate-400 font-medium">
+                            <span class="font-bold text-indigo-900">@${escapeHtml(c.username)}</span>
+                            <span>${c.timestamp}</span>
+                        </div>
+                        <p class="text-slate-700 whitespace-pre-wrap">${escapeHtml(c.content)}</p>
+                    </div>
+                `).join('');
+            } catch (err) {
+                feed.innerHTML = '<p class="text-xs text-rose-500">Failed to load discussion comments.</p>';
+            }
+        }
+
+        async function submitActiveDiscussion(event) {
+            event.preventDefault();
+            const username = document.getElementById("active-comment-user").value.trim() || getActiveUsername();
+            const content = document.getElementById("active-comment-content").value.trim();
+            if (!content || !currentQuestion) return;
+
+            const questionHash = hashCode(currentQuestion.question_stem);
+
+            try {
+                const response = await fetch(`${API_BASE}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question_hash: questionHash, username, content })
+                });
+
+                if (response.ok) {
+                    document.getElementById("active-comment-content").value = '';
+                    loadActiveDiscussion(questionHash);
+                }
+            } catch (err) {
+                console.error("Failed to post active comment", err);
+            }
         }
 
         function openReactionSurveyModal() {
