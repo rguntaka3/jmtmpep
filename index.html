@@ -79,9 +79,15 @@
                         <p class="text-[11px] text-slate-500">Fresh RAG practice questions.</p>
                     </div>
 
-                    <div onclick="setMode('spaced')" id="mode-card-spaced" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
-                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">Spaced Repetition</h3>
-                        <p class="text-[11px] text-slate-500">Targeted review of missed items.</p>
+                    <div onclick="setMode('spaced')" id="mode-card-spaced" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300 space-y-2">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-800 mb-0.5">Spaced Repetition</h3>
+                            <p class="text-[11px] text-slate-500">Targeted review of missed/older items.</p>
+                        </div>
+                        <div id="spaced-options-container" class="hidden pt-2 border-t border-slate-200" onclick="event.stopPropagation()">
+                            <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Older than (days):</label>
+                            <input type="number" id="spaced-days-input" value="3" min="1" max="90" class="w-full text-xs p-1.5 rounded-lg bg-white border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
                     </div>
 
                     <div onclick="setMode('baseline')" id="mode-card-baseline" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300">
@@ -566,10 +572,17 @@
             sessionMode = mode;
             ['dynamic', 'spaced', 'baseline', 'exam'].forEach(m => {
                 const card = document.getElementById(`mode-card-${m}`);
+                const spacedOpts = document.getElementById("spaced-options-container");
+
                 if (card) {
                     card.className = m === mode 
                         ? "p-3.5 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition-all"
                         : "p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300";
+                }
+                
+                if (spacedOpts) {
+                    if (mode === 'spaced') spacedOpts.classList.remove("hidden");
+                    else spacedOpts.classList.add("hidden");
                 }
             });
             const boxChapters = document.getElementById("chapter-selection-box");
@@ -614,10 +627,11 @@
                 selectedChapters = Array.from(checkboxes).map(cb => cb.value);
                 if (selectedChapters.length === 0) { alert("Please select at least one MPEP chapter."); return; }
             } else {
-                const res = await fetch(`${API_BASE}/spaced-repetition-questions?username=${encodeURIComponent(getActiveUsername())}`);
+                const daysVal = document.getElementById("spaced-days-input") ? document.getElementById("spaced-days-input").value : 3;
+                const res = await fetch(`${API_BASE}/spaced-repetition-questions?username=${encodeURIComponent(getActiveUsername())}&days=${daysVal}`);
                 if (res.ok) {
                     spacedQueue = await res.json();
-                    if (spacedQueue.length === 0) { alert("No review items found."); return; }
+                    if (spacedQueue.length === 0) { alert(`No review items found older than ${daysVal} days.`); return; }
                 }
             }
 
@@ -1531,8 +1545,8 @@
                     chapterMap[chapter].topics[topic] = { total: 0, correct: 0, wrong: 0 };
                 }
                 chapterMap[chapter].topics[topic].total++;
-                if (item.isCorrect) chapterMap[chapter].topics[topic].correct++;
-                else chapterMap[chapter].topics[topic].wrong++;
+                if (item.isCorrect) chapterMap[chapter].correct++;
+                else chapterMap[chapter].wrong++;
             });
 
             for (const [chapterName, chStats] of Object.entries(chapterMap)) {

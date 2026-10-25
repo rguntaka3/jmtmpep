@@ -19,7 +19,7 @@ from pathlib import Path
 from pypdf import PdfReader
 import numpy as np
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from dotenv import load_dotenv
@@ -84,6 +84,8 @@ async def lifespan(app: FastAPI):
                     cursor.execute("ALTER TABLE question_history ADD COLUMN time_spent INTEGER DEFAULT 0;")
                 if "session_type" not in history_cols:
                     cursor.execute("ALTER TABLE question_history ADD COLUMN session_type TEXT DEFAULT 'practice';")
+                if "created_at" not in history_cols:
+                    cursor.execute("ALTER TABLE question_history ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;")
                 conn.commit()
 
             cursor.execute("PRAGMA table_info(question_comments);")
@@ -224,6 +226,7 @@ class QuestionHistoryDB(Base):
     time_spent = Column(Integer, default=0)
     session_type = Column(String, default="practice")
     timestamp = Column(String)
+    created_at = Column(String, default=lambda: datetime.now().isoformat())
 
 Base.metadata.create_all(bind=engine)
 
@@ -653,22 +656,41 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
         raise HTTPException(status_code=500, detail=f"Failed generative synthesis: {str(e)}")
 
 @app.get("/spaced-repetition-questions", response_model=List[QuestionResponse])
-async def get_spaced_repetition_questions(username: Optional[str] = None, db: Session = Depends(get_db)):
+async def get_spaced_repetition_questions(username: Optional[str] = None, days: int = 3, db: Session = Depends(get_db)):
     query = db.query(QuestionHistoryDB)
     if username:
         query = query.filter(QuestionHistoryDB.username == username.strip().lower())
     
-    items = query.order_by(QuestionHistoryDB.is_correct.asc(), QuestionHistoryDB.id.asc()).limit(10).all()
+    cutoff_time = datetime.now() - timedelta(days=days)
+    all_items = query.order_by(QuestionHistoryDB.is_correct.asc(), QuestionHistoryDB.id.desc()).all()
+    
+    filtered_items = []
+    for item in all_items:
+        # Check ISO timestamp or created_at column if available
+        item_dt = None
+        if hasattr(item, 'created_at') and item.created_at:
+            try:
+                item_dt = datetime.fromisoformat(item.created_at)
+            except Exception:
+                pass
+        
+        # If no valid ISO timestamp exists, consider item eligible for spaced repetition review
+        if item_dt is None or item_dt <= cutoff_time:
+            filtered_items.append(item)
+            
+        if len(filtered_items) >= 10:
+            break
+            
     return [
         QuestionResponse(
             chapter=item.chapter,
-            chapter_context=f"Review: {item.context}",
+            chapter_context=f"Review (>{days}d old): {item.context}",
             question_type=item.question_type or "procedural",
             question_stem=item.stem,
             options=json.loads(item.options_json),
             correct_answer=item.correct_choice,
             explanation=item.explanation
-        ) for item in items
+        ) for item in filtered_items
     ]
 
 @app.post("/history")
@@ -687,7 +709,8 @@ async def save_history(item: HistoryCreate, db: Session = Depends(get_db)):
         is_correct=item.is_correct,
         time_spent=item.time_spent or 0,
         session_type=item.session_type or "practice",
-        timestamp=datetime.now().strftime("%I:%M:%S %p")
+        timestamp=datetime.now().strftime("%I:%M:%S %p"),
+        created_at=datetime.now().isoformat()
     )
     db.add(db_item)
     db.commit()
