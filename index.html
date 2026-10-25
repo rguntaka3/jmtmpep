@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MPEP Patent Bar Master Quiz - Study Mode</title>
+    <title>USPTO Manual of Patent Examining Procedure Study Web Application - Study Mode</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -13,8 +13,7 @@
     <header class="bg-white border-b border-slate-200 py-2.5 px-6 shadow-xs sticky top-0 z-40">
         <div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-3">
             <h1 class="text-base sm:text-lg font-bold tracking-tight text-indigo-900 flex items-center gap-2 cursor-pointer" onclick="returnToLanding()">
-                USPTO Patent Bar Master Quiz 
-                <span class="hidden sm:inline-block text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 font-medium">Kirkpatrick Evaluation Edition</span>
+                USPTO Manual of Patent Examining Procedure Study Web Application
             </h1>
             <div id="header-actions" class="flex items-center gap-3 flex-wrap">
                 <div id="auth-container" class="flex items-center gap-2">
@@ -132,7 +131,7 @@
 
                     <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs text-indigo-950 space-y-2">
                         <h4 class="font-bold text-indigo-900">Why submit your exam score?</h4>
-                        <p class="leading-relaxed">Your outcome data powers our platform performance analytics (Kirkpatrick Level 4 evaluation). It allows us to continuously optimize GenAI question models based on actual exam pass rates.</p>
+                        <p class="leading-relaxed">Your outcome data powers our platform performance analytics. It allows us to continuously optimize GenAI question models based on actual exam pass rates.</p>
                     </div>
                 </div>
 
@@ -242,9 +241,6 @@
                         <h3 class="text-sm font-bold text-indigo-900 flex items-center gap-2">
                             Student Survey Feedback & Learning Impact
                         </h3>
-                        <span class="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full">
-                            Kirkpatrick Levels 1 & 4
-                        </span>
                     </div>
 
                     <!-- Rating Metrics Grid -->
@@ -309,7 +305,7 @@
                 <div class="flex justify-between items-center border-b border-slate-200 pb-4 flex-wrap gap-4">
                     <div>
                         <h2 class="text-xl font-bold text-slate-900">Performance Analytics & Review History</h2>
-                        <p class="text-xs sm:text-sm text-slate-500">Kirkpatrick Level 3 Behavior Analytics and session history for: <span id="history-user-label" class="font-bold text-indigo-900"></span>.</p>
+                        <p class="text-xs sm:text-sm text-slate-500">Behavior Analytics and session history for: <span id="history-user-label" class="font-bold text-indigo-900"></span>.</p>
                     </div>
                     <button onclick="returnToLanding()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer shadow-xs">← Back to Dashboard</button>
                 </div>
@@ -433,7 +429,7 @@
     <!-- RESULT SURVEY MODAL -->
     <div id="result-modal" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl">
-            <h3 class="text-lg font-bold text-indigo-900">Kirkpatrick Level 4: Real-World Exam Outcome</h3>
+            <h3 class="text-lg font-bold text-indigo-900">Real-World Exam Outcome</h3>
             <p class="text-xs text-slate-500">Report your real-world performance on the USPTO Patent Bar Exam.</p>
             
             <div class="space-y-3 text-xs">
