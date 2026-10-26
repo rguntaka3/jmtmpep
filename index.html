@@ -151,7 +151,7 @@
         <div id="quiz-view" class="hidden w-full">
             <div id="loading-state" class="text-center py-16 hidden">
                 <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent"></div>
-                <p class="mt-4 text-slate-500 text-xs font-medium tracking-wide">Synthesizing MPEP question...</p>
+                <p id="loading-text" class="mt-4 text-slate-500 text-xs font-medium tracking-wide">Synthesizing MPEP question...</p>
             </div>
 
             <div id="split-layout" class="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full transition-all duration-300">
@@ -196,7 +196,7 @@
                     </div>
 
                     <div id="action-buttons-container" class="flex justify-end pt-3 border-t border-slate-100 mt-2">
-                        <button id="next-btn" onclick="fetchNewQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition duration-200 cursor-pointer shadow-xs text-xs">Next Question</button>
+                        <button id="next-btn" onclick="handleNextStep()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl transition duration-200 cursor-pointer shadow-xs text-xs">Next Question</button>
                     </div>
                 </div>
 
@@ -484,6 +484,11 @@
         let spacedQueue = [];
         let isStudyPanelOpen = true; 
         
+        // Multi-Attempt Productive Failure State
+        let currentAttempt = 1;
+        let isTransferQuestion = false;
+        let transferQuestionData = null;
+
         let currentDifficulty = "easy";
         let consecutiveCorrect = 0;
         let questionHistory = [];
@@ -706,37 +711,14 @@
             const qHash = hashCode(currentQuestion.question_stem);
             loadActiveDiscussion(qHash);
 
-            // Auto-scroll to make the action buttons easily visible without manual scrolling
             document.getElementById("action-buttons-container").scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-            await fetch(`${API_BASE}/history`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    username: getActiveUsername(),
-                    chapter: currentQuestion.chapter || "Chapter 700",
-                    context: currentQuestion.chapter_context,
-                    question_type: currentQuestion.question_type || "procedural",
-                    stem: currentQuestion.question_stem,
-                    options: currentQuestion.options,
-                    user_choice: "TIMEOUT",
-                    correct_choice: correctLetter,
-                    explanation: currentQuestion.explanation,
-                    difficulty: currentDifficulty,
-                    is_correct: false,
-                    time_spent: 180,
-                    session_type: sessionMode
-                })
-            });
-            await fetchHistoryCount();
-            document.getElementById("score").innerText = score;
-            document.getElementById("total").innerText = totalAnswered;
+            await recordHistory("TIMEOUT", false, 180);
         }
 
         function shouldPromptReactionSurvey() {
             const lastSubmitted = localStorage.getItem("mpep_last_survey_date");
             if (!lastSubmitted) return true;
-            
             const daysSince = (new Date() - new Date(lastSubmitted)) / (1000 * 60 * 60 * 24);
             return daysSince >= 7;
         }
@@ -1000,8 +982,8 @@
 
         function updateDifficultyBadge() {
             const badge = document.getElementById("badge-difficulty");
-            badge.innerText = currentDifficulty;
-            badge.className = `text-[11px] px-2 py-0.5 rounded-full font-semibold uppercase ${currentDifficulty === 'easy' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : currentDifficulty === 'medium' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`;
+            badge.innerText = isTransferQuestion ? "Transfer (Level Up)" : currentDifficulty;
+            badge.className = `text-[11px] px-2 py-0.5 rounded-full font-semibold uppercase ${isTransferQuestion ? 'bg-indigo-100 text-indigo-800 border border-indigo-300' : currentDifficulty === 'easy' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : currentDifficulty === 'medium' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`;
         }
 
         function updateTypeBadge(qType) {
@@ -1027,6 +1009,15 @@
                 }
             }
 
+            // If we have a queued transfer question ready, load it instantly!
+            if (isTransferQuestion && transferQuestionData) {
+                loadQuestionData(transferQuestionData);
+                transferQuestionData = null;
+                return;
+            }
+
+            isTransferQuestion = false;
+            currentAttempt = 1;
             const loadingState = document.getElementById("loading-state");
             const quizCard = document.getElementById("quiz-card");
             const explanationBox = document.getElementById("explanation-box");
@@ -1052,79 +1043,121 @@
                     data = await res.json();
                 }
 
-                currentQuestion = data;
-                document.getElementById("badge-context").innerText = sessionMode === 'exam' ? `Exam Q ${examCurrentIndex}/${examTotalQuestions} | ${data.chapter_context}` : data.chapter_context;
-                updateTypeBadge(data.question_type);
-                document.getElementById("question-stem").innerText = data.question_stem;
-
-                if (isStudyPanelOpen && data.chapter) {
-                    const chNum = data.chapter.replace("Chapter ", "").trim();
-                    document.getElementById("pdf-chapter-label").innerText = chNum;
-                    const filename = chapterFilesMap[chNum] || `mpep-${chNum}.pdf`;
-                    document.getElementById("pdf-iframe").src = `${window.location.origin}/viewer/web/viewer.html?file=${encodeURIComponent(`${window.location.origin}/pdfs/${filename}`)}#pagemode=none`;
-                }
-
-                const optionsContainer = document.getElementById("options-container");
-                optionsContainer.innerHTML = "";
-                data.options.forEach(optText => {
-                    const optLetter = optText.trim().charAt(0).toUpperCase();
-                    const button = document.createElement("button");
-                    button.className = "w-full text-left py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs transition flex items-start gap-2.5 cursor-pointer";
-                    button.innerHTML = `<span class="font-bold text-indigo-600">${optLetter}.</span> <span class="flex-grow">${optText.substring(3)}</span>`;
-                    button.onclick = () => selectOption(button, optLetter);
-                    optionsContainer.appendChild(button);
-                });
-
-                document.getElementById("explanation-text").innerText = data.explanation;
-                nextBtn.innerText = sessionMode === 'exam' && examCurrentIndex === examTotalQuestions ? "Finish Exam" : "Next Question";
-                startQuestionTimer();
+                loadQuestionData(data);
             } catch (err) {
                 console.error(err);
                 alert("Error connecting to backend API.");
             } finally {
-                loadingState.classList.add("hidden");
+                document.getElementById("loading-state").classList.add("hidden");
                 quizCard.style.opacity = "1";
-                nextBtn.disabled = false;
+                document.getElementById("next-btn").disabled = false;
             }
+        }
+
+        function loadQuestionData(data) {
+            currentQuestion = data;
+            isAnswered = false; // <--- Crucial: Reset answer lock
+            currentAttempt = 1; // <--- Reset attempt counter for multi-attempt design
+
+            document.getElementById("badge-context").innerText = sessionMode === 'exam' ? `Exam Q ${examCurrentIndex}/${examTotalQuestions} | ${data.chapter_context}` : (isTransferQuestion ? `Transfer Concept | ${data.chapter_context}` : data.chapter_context);
+            updateTypeBadge(data.question_type);
+            updateDifficultyBadge();
+            document.getElementById("question-stem").innerText = data.question_stem;
+
+            // Hide explanation box and community discussion box for the fresh question
+            document.getElementById("explanation-box").classList.add("hidden");
+            document.getElementById("active-question-discussion").classList.add("hidden");
+            document.getElementById("adaptive-banner").classList.add("hidden");
+
+            if (isStudyPanelOpen && data.chapter) {
+                const chNum = data.chapter.replace("Chapter ", "").trim();
+                document.getElementById("pdf-chapter-label").innerText = chNum;
+                const filename = chapterFilesMap[chNum] || `mpep-${chNum}.pdf`;
+                document.getElementById("pdf-iframe").src = `${window.location.origin}/viewer/web/viewer.html?file=${encodeURIComponent(`${window.location.origin}/pdfs/${filename}`)}#pagemode=none`;
+            }
+
+            renderOptions();
+            document.getElementById("explanation-text").innerText = data.explanation;
+            document.getElementById("next-btn").innerText = sessionMode === 'exam' && examCurrentIndex === examTotalQuestions ? "Finish Exam" : "Next Question";
+            startQuestionTimer();
+        }
+        function renderOptions() {
+            const optionsContainer = document.getElementById("options-container");
+            optionsContainer.innerHTML = "";
+            currentQuestion.options.forEach(optText => {
+                const optLetter = optText.trim().charAt(0).toUpperCase();
+                const button = document.createElement("button");
+                button.className = "w-full text-left py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs transition flex items-start gap-2.5 cursor-pointer";
+                button.innerHTML = `<span class="font-bold text-indigo-600">${optLetter}.</span> <span class="flex-grow">${optText.substring(3)}</span>`;
+                button.onclick = () => selectOption(button, optLetter);
+                optionsContainer.appendChild(button);
+            });
         }
 
         async function selectOption(selectedButton, chosenLetter) {
             if (isAnswered) return;
-            isAnswered = true;
-            totalAnswered++;
-
+            
             if (questionTimerInterval) clearInterval(questionTimerInterval);
             const timeSpent = 180 - questionSecondsRemaining;
             const correctLetter = currentQuestion.correct_answer.trim().charAt(0).toUpperCase();
             const isCorrect = chosenLetter === correctLetter;
-            const buttons = document.getElementById("options-container").getElementsByTagName("button");
+            const isSubstantive = (currentQuestion.question_type || "procedural").toLowerCase() === "substantive";
 
+            // If EXAM or BASELINE mode, treat normally
             if (sessionMode === 'exam' || sessionMode === 'baseline') {
+                isAnswered = true;
+                totalAnswered++;
                 selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-indigo-50 border-2 border-indigo-500 text-indigo-900 text-xs flex items-start gap-2.5";
                 if (isCorrect) score++;
-            } else {
-                if (isCorrect) {
-                    selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs flex items-start gap-2.5";
-                    score++;
-                } else {
-                    selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-rose-50 border-2 border-rose-500 text-rose-900 text-xs flex items-start gap-2.5";
-                    for (let btn of buttons) {
-                        if (btn.innerText.startsWith(correctLetter)) {
-                            btn.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-start gap-2.5";
-                        }
-                    }
-                }
-                document.getElementById("explanation-box").classList.remove("hidden");
+                finalizeQuestionInteraction(isCorrect, chosenLetter, correctLetter, timeSpent);
+                return;
             }
 
-            // Reveal and load active community discussion feed for this question
-            document.getElementById("active-question-discussion").classList.remove("hidden");
-            const qHash = hashCode(currentQuestion.question_stem);
-            loadActiveDiscussion(qHash);
+            // --- MULTI-ATTEMPT PRODUCTIVE FAILURE WORKFLOW FOR SUBSTANTIVE & PRACTICE ---
+            if (isSubstantive && currentAttempt === 1 && !isCorrect) {
+                // First attempt incorrect for substantive: trigger cognitive dissonance!
+                currentAttempt = 2;
+                selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-rose-50 border-2 border-rose-500 text-rose-900 text-xs flex items-start gap-2.5";
+                selectedButton.disabled = true;
+                showAdaptiveNotice("⚠️ Incorrect (Attempt 1 of 2). Reflect on the statute and try a different legal track for Attempt 2!", "down");
+                
+                // Restart timer for attempt 2
+                startQuestionTimer();
+                return;
+            }
 
-            // Auto-scroll down smoothly so the action buttons and next question button are immediately visible
+            // Finalizing answer (either correct on attempt 1, or resolved on attempt 2)
+            isAnswered = true;
+            totalAnswered++;
+
+            const buttons = document.getElementById("options-container").getElementsByTagName("button");
+            if (isCorrect) {
+                selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border-2 border-emerald-500 text-emerald-900 text-xs flex items-start gap-2.5";
+                if (currentAttempt === 1) score++;
+            } else {
+                selectedButton.className = "w-full text-left py-2 px-3 rounded-lg bg-rose-50 border-2 border-rose-500 text-rose-900 text-xs flex items-start gap-2.5";
+                for (let btn of buttons) {
+                    if (btn.innerText.startsWith(correctLetter)) {
+                        btn.className = "w-full text-left py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-start gap-2.5";
+                    }
+                }
+            }
+
+            document.getElementById("explanation-box").classList.remove("hidden");
+            document.getElementById("active-question-discussion").classList.remove("hidden");
+            loadActiveDiscussion(hashCode(currentQuestion.question_stem));
+
             document.getElementById("action-buttons-container").scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
+            await finalizeQuestionInteraction(isCorrect, chosenLetter, correctLetter, timeSpent);
+
+            // If substantive question completed successfully or failed both attempts, trigger immediate transfer question generation!
+            if (isSubstantive && !isTransferQuestion) {
+                fetchTransferQuestion(currentQuestion);
+            }
+        }
+
+        async function finalizeQuestionInteraction(isCorrect, chosenLetter, correctLetter, timeSpent) {
             await fetch(`${API_BASE}/history`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1147,6 +1180,27 @@
             await fetchHistoryCount();
             document.getElementById("score").innerText = score;
             document.getElementById("total").innerText = totalAnswered;
+        }
+
+        async function fetchTransferQuestion(originalQ) {
+            try {
+                const res = await fetch(`${API_BASE}/generate-question?chapters=${originalQ.chapter ? originalQ.chapter.replace("Chapter ", "") : "700"}&difficulty=${currentDifficulty}`);
+                if (res.ok) {
+                    const tData = await res.json();
+                    // Customize stem to reflect immediate knowledge transfer
+                    tData.question_stem = "[Transfer Practice] " + tData.question_stem;
+                    transferQuestionData = tData;
+                    isTransferQuestion = true;
+                    // Update next button label to indicate transfer practice
+                    document.getElementById("next-btn").innerText = "Start Transfer Practice Question →";
+                }
+            } catch (err) {
+                console.error("Could not fetch transfer question:", err);
+            }
+        }
+
+        function handleNextStep() {
+            fetchNewQuestion();
         }
 
         async function loadActiveDiscussion(questionHash) {
