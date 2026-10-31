@@ -228,6 +228,15 @@ class QuestionHistoryDB(Base):
     timestamp = Column(String)
     created_at = Column(String, default=lambda: datetime.now().isoformat())
 
+class ConceptProgressDB(Base):
+    __tablename__ = "concept_progress"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, default="guest", index=True)
+    concept_tag = Column(String, index=True)
+    current_tier = Column(Integer, default=1)
+    successful_encounters = Column(Integer, default=0)
+    last_reviewed_at = Column(String, default=lambda: datetime.now().isoformat())
+
 Base.metadata.create_all(bind=engine)
 
 class CommentCreate(BaseModel):
@@ -550,7 +559,7 @@ async def get_available_chapters():
     return {"chapters": [{"chapter": ch, "filename": chapter_memory[ch].get("filename", f"mpep-{ch}.pdf")} for ch in sorted_chapters]}
 
 @app.get("/generate-question", response_model=QuestionResponse)
-async def generate_question(chapters: str = "700", difficulty: str = "medium"):
+async def generate_question(chapters: str = "700", difficulty: str = "medium", username: Optional[str] = "guest"):
     global chapter_memory
     if not chapter_memory:
         raise HTTPException(status_code=500, detail="MPEP knowledge base is empty or uninitialized.")
@@ -579,7 +588,7 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
     }.get(difficulty.lower(), "Difficulty: MEDIUM.")
 
     system_prompt = (
-                "You are an official USPTO Patent Bar exam writer. "
+                "You are a very experienced Patent attorney. "
                 f"Generate a multiple-choice question (MCQ) strictly and directly based on the provided text context from **Chapter {source_ch}** of the MPEP.\n\n"
                 f"{difficulty_instructions}\n"
                 f"{type_instructions}\n\n"
@@ -587,8 +596,8 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
                 "1. Do NOT invent legal exceptions, timelines, or procedural burdens that are not explicitly stated in the source text chunk.\n"
                 "2. Structure: Exactly 5 choices (A, B, C, D, E) where only ONE is definitively correct based on the text.\n"
                 "3. **CRITICAL OPTION LENGTH & DETAIL CONSTRAINT**: Ensure that ALL options (A, B, C, D, E) are of **similar length, sentence structure, and level of descriptive detail**. Avoid making the correct answer noticeably longer or more qualified than the distractors. Each distractor must be fully plausible and well-crafted with comparable complexity.\n"
-                "4. Context Format: The `chapter_context` MUST explicitly cite the exact MPEP section present in the source text[cite: 4].\n"
-                "5. Strict Citation & Accuracy: The correct answer and explanation must rely exclusively on the text provided. Do not extrapolate rules from other chapters or general knowledge if they contradict the source text[cite: 4].\n\n"
+                "4. Context Format: The `chapter_context` MUST explicitly cite the exact MPEP section present in the source text.\n"
+                "5. Strict Citation & Accuracy: The correct answer and explanation must rely exclusively on the text provided. Do not extrapolate rules from other chapters or general knowledge if they contradict the source text.\n\n"
                 "You MUST return your output as a raw JSON string matching this exact schema layout:\n"
                 "{\n"
                 f"  \"chapter_context\": \"MPEP § {source_ch}.XX – Topic Title\",\n"
@@ -638,8 +647,6 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
 
         max_retries = 2
         for attempt in range(max_retries + 1):
-            # 1. Generate question via RAG...
-            # 2. Run LLM Judge...
             evaluation = await evaluate_generated_question(
                 question_stem=normalized_data["question_stem"],
                 options=normalized_data["options"],
@@ -656,6 +663,92 @@ async def generate_question(chapters: str = "700", difficulty: str = "medium"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed generative synthesis: {str(e)}")
 
+@app.get("/spiral-question", response_model=QuestionResponse)
+async def get_spiral_question(username: Optional[str] = "guest", chapters: str = "700", db: Session = Depends(get_db)):
+    """Bruner Spiral Curriculum Endpoint: Escalates cognitive difficulty based on past concept mastery."""
+    uname = (username or "guest").strip().lower()
+    
+    # Check user progress on concept tags in Chapter
+    req_chapters = [str(int(c.strip())) for c in chapters.split(",") if c.strip().isdigit()]
+    target_ch = req_chapters[0] if req_chapters else "700"
+    
+    concept_tag = f"Chapter {target_ch} Core Concepts"
+    progress = db.query(ConceptProgressDB).filter(
+        ConceptProgressDB.username == uname,
+        ConceptProgressDB.concept_tag == concept_tag
+    ).first()
+    
+    if not progress:
+        progress = ConceptProgressDB(username=uname, concept_tag=concept_tag, current_tier=1, successful_encounters=0)
+        db.add(progress)
+        db.commit()
+    
+    current_tier = progress.current_tier
+    
+    # Map Spiral Tier to prompt depth instructions
+    tier_instructions = {
+        1: "Spiral Tier 1 (Introduction & Definitions): Focus on direct statutory definitions, clear-cut rules, and basic procedural steps.",
+        2: "Spiral Tier 2 (Application & Scenarios): Focus on standard rule application to a realistic hypothetical scenario.",
+        3: "Spiral Tier 3 (Mastery & Complex Exceptions): Create a complex multi-step fact pattern featuring intersecting rules, exceptions, and procedural nuances."
+    }.get(current_tier, "Spiral Tier 1: Focus on foundational rules.")
+    
+    # Generate base question using standard generator logic with tier injection
+    global chapter_memory
+    if not chapter_memory:
+        raise HTTPException(status_code=500, detail="MPEP knowledge base is empty.")
+    
+    source_ch = target_ch if target_ch in chapter_memory else list(chapter_memory.keys())[0]
+    query_text, query_vector = random.choice(list(zip(chapter_memory[source_ch]["texts"], chapter_memory[source_ch]["vectors"])))
+    similarities = np.dot(np.array(chapter_memory[source_ch]["vectors"]), query_vector)
+    top_indices = np.argsort(similarities)[-2:]
+    combined_context = "\n---\n".join([chapter_memory[source_ch]["texts"][idx] for idx in top_indices])
+    
+    system_prompt = (
+        "You are an expert USPTO Patent Bar examiner implementing Bruner's Spiral Curriculum. "
+        f"Generate a multiple-choice question for **{concept_tag}** (Spiral Tier {current_tier}) based on Chapter {source_ch}.\n\n"
+        f"{tier_instructions}\n\n"
+        "CRITICAL RULES:\n"
+        "1. Exactly 5 choices (A, B, C, D, E) with only ONE correct answer.\n"
+        "2. Ensure all options are of similar length and descriptive detail.\n"
+        "You MUST return your output as a raw JSON string matching this exact schema layout:\n"
+        "{\n"
+        f"  \"chapter_context\": \"Spiral Tier {current_tier} – {concept_tag}\",\n"
+        "  \"question_type\": \"substantive\",\n"
+        "  \"question_stem\": \"The question text...\",\n"
+        "  \"options\": [\"A. ...\", \"B. ...\", \"C. ...\", \"D. ...\", \"E. ...\"],\n"
+        "  \"correct_answer\": \"The correct letter option (e.g., C)\",\n"
+        "  \"explanation\": \"Detailed rationale citing MPEP statutes.\"\n"
+        "}"
+    )
+
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    api_key = os.environ.get("GROQ_API_KEY")
+    headers = {"Authorization": f"Bearer {api_key.strip()}", "Content-Type": "application/json"}
+    payload = {
+        "model": "openai/gpt-oss-120b",
+        "temperature": 0.7,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Generate a Spiral Tier {current_tier} question for Chapter {source_ch}:\n\n{combined_context}"}
+        ]
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        parsed_json = json.loads(response.json()["choices"][0]["message"]["content"].strip())
+        return QuestionResponse(
+            chapter=f"Chapter {source_ch}",
+            chapter_context=parsed_json.get("chapter_context") or f"Spiral Tier {current_tier}",
+            question_type="substantive",
+            question_stem=parsed_json.get("question_stem") or "Question Text Missing",
+            options=parsed_json.get("options") or ["A. Error", "B. Error", "C. Error", "D. Error", "E. Error"],
+            correct_answer=parsed_json.get("correct_answer") or "A",
+            explanation=parsed_json.get("explanation") or "Explanation verified."
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Spiral synthesis failed: {str(e)}")
+
 @app.get("/spaced-repetition-questions", response_model=List[QuestionResponse])
 async def get_spaced_repetition_questions(username: Optional[str] = None, days: int = 3, db: Session = Depends(get_db)):
     query = db.query(QuestionHistoryDB)
@@ -667,7 +760,6 @@ async def get_spaced_repetition_questions(username: Optional[str] = None, days: 
     
     filtered_items = []
     for item in all_items:
-        # Check ISO timestamp or created_at column if available
         item_dt = None
         if hasattr(item, 'created_at') and item.created_at:
             try:
@@ -675,7 +767,6 @@ async def get_spaced_repetition_questions(username: Optional[str] = None, days: 
             except Exception:
                 pass
         
-        # If no valid ISO timestamp exists, consider item eligible for spaced repetition review
         if item_dt is None or item_dt <= cutoff_time:
             filtered_items.append(item)
             
@@ -714,6 +805,20 @@ async def save_history(item: HistoryCreate, db: Session = Depends(get_db)):
         created_at=datetime.now().isoformat()
     )
     db.add(db_item)
+    
+    # Update spiral concept progress if answered correctly
+    if item.is_correct:
+        uname = (item.username or "guest").strip().lower()
+        tag = f"{item.chapter} Core Concepts"
+        prog = db.query(ConceptProgressDB).filter(ConceptProgressDB.username == uname, ConceptProgressDB.concept_tag == tag).first()
+        if prog:
+            prog.successful_encounters += 1
+            if prog.successful_encounters >= 3 and prog.current_tier < 3:
+                prog.current_tier += 1 # Spiral upward to next cognitive tier
+                prog.successful_encounters = 0
+        else:
+            db.add(ConceptProgressDB(username=uname, concept_tag=tag, current_tier=1, successful_encounters=1))
+
     db.commit()
     return {"status": "success", "id": db_item.id}
 
