@@ -100,9 +100,18 @@
                         <p class="text-[11px] text-slate-500">Initial assessment & check.</p>
                     </div>
 
-                    <div onclick="setMode('exam')" id="mode-card-exam" role="radio" aria-checked="false" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')setMode('exam')" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <h3 class="text-xs font-bold text-slate-800 mb-0.5">Full Exam (100 Qs / 3 Hrs)</h3>
-                        <p class="text-[11px] text-slate-500">Simulated 3-hr bar exam.</p>
+                    <div onclick="setMode('exam')" id="mode-card-exam" role="radio" aria-checked="false" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')setMode('exam')" class="p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 cursor-pointer transition-all hover:border-indigo-300 space-y-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-800 mb-0.5">Full Exam Simulation</h3>
+                            <p class="text-[11px] text-slate-500">Official timed Patent Bar.</p>
+                        </div>
+                        <div id="exam-options-container" class="hidden pt-2 border-t border-slate-200" onclick="event.stopPropagation()">
+                            <label for="exam-length-select" class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Exam Format:</label>
+                            <select id="exam-length-select" onchange="setExamLength(this.value)" class="w-full text-xs p-1.5 rounded-lg bg-white border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
+                                <option value="50">50 Qs / 3 Hrs (Session Block)</option>
+                                <option value="100">100 Qs / 6 Hrs (Full Exam)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -505,9 +514,9 @@
 
         let questionSecondsRemaining = 180;
         let questionTimerInterval = null;
-        let examSecondsRemaining = 10800;
+        let examSecondsRemaining = 10800; // Default: 3 hours (10,800 sec)
         let examTimerInterval = null;
-        let examTotalQuestions = 100;
+        let examTotalQuestions = 50;   // Default: 50 questions per session block
         let examCurrentIndex = 0;
 
         const API_BASE = "";
@@ -526,6 +535,16 @@
             if (accuracy >= 85 && attempts >= 10) return { label: "Mastered", color: "bg-emerald-50 text-emerald-700 border-emerald-200" };
             if (accuracy >= 70) return { label: "Proficient", color: "bg-indigo-50 text-indigo-700 border-indigo-200" };
             return { label: "Developing", color: "bg-orange-50 text-orange-700 border-orange-200" };
+        }
+
+        function setExamLength(val) {
+            if (val === "100") {
+                examTotalQuestions = 100;
+                examSecondsRemaining = 21600; // 6 hours
+            } else {
+                examTotalQuestions = 50;
+                examSecondsRemaining = 10800; // 3 hours
+            }
         }
 
         // Web Speech API Voice-to-Text Dictation Helper
@@ -634,6 +653,7 @@
             ['dynamic', 'spiral', 'spaced', 'baseline', 'exam'].forEach(m => {
                 const card = document.getElementById(`mode-card-${m}`);
                 const spacedOpts = document.getElementById("spaced-options-container");
+                const examOpts = document.getElementById("exam-options-container");
 
                 if (card) {
                     const isSelected = (m === mode);
@@ -646,6 +666,10 @@
                 if (spacedOpts) {
                     if (mode === 'spaced') spacedOpts.classList.remove("hidden");
                     else spacedOpts.classList.add("hidden");
+                }
+                if (examOpts) {
+                    if (mode === 'exam') examOpts.classList.remove("hidden");
+                    else examOpts.classList.add("hidden");
                 }
             });
             const boxChapters = document.getElementById("chapter-selection-box");
@@ -736,7 +760,11 @@
             score = 0;
             totalAnswered = 0;
             examCurrentIndex = 0;
-            examSecondsRemaining = 10800;
+
+            if (sessionMode === 'exam') {
+                const selectVal = document.getElementById("exam-length-select") ? document.getElementById("exam-length-select").value : "50";
+                setExamLength(selectVal);
+            }
 
             document.getElementById("landing-view").classList.add("hidden");
             document.getElementById("history-view").classList.add("hidden");
@@ -758,7 +786,7 @@
                 examSecondsRemaining--;
                 if (examSecondsRemaining <= 0) {
                     clearInterval(examTimerInterval);
-                    alert("Time's up! Your 3-hour exam session has ended.");
+                    alert("Time's up! Your official exam simulation block has ended.");
                     openReactionSurveyModal();
                 }
             }, 1000);
