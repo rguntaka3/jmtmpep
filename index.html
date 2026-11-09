@@ -179,9 +179,16 @@
                                 <span id="timer-badge" class="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold" aria-live="polite">Timer: <span id="timer-display">03:00</span></span>
                             </div>
                             <div class="flex items-center gap-2">
+                                <button onclick="toggleHeaderHint()" id="header-hint-btn" class="min-h-[36px] text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1 rounded-lg font-medium transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500" aria-label="Toggle Deeper Hint">💡 Hint</button>
                                 <button onclick="toggleStudyPanel()" id="study-panel-btn" class="min-h-[36px] text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg font-medium transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Toggle PDF Study Viewer"><span id="study-btn-text">Hide PDF</span></button>
                                 <button onclick="returnToLanding()" class="text-[11px] text-slate-400 hover:text-slate-700 underline cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-sm" aria-label="End Session">End Session</button>
                             </div>
+                        </div>
+
+                        <!-- Deeper Hint Banner (Initially Hidden) -->
+                        <div id="header-hint-box" class="hidden bg-amber-50/90 border border-amber-200 rounded-xl p-3 text-xs text-amber-950 space-y-1 transition-all" aria-live="polite">
+                            <div class="font-bold uppercase tracking-wider text-[10px] text-amber-900">Deeper MPEP Guidance & Hint</div>
+                            <p id="header-hint-text" class="leading-relaxed"></p>
                         </div>
 
                         <div id="adaptive-banner" class="hidden p-2 rounded-xl text-xs font-semibold text-center transition-all" aria-live="polite"></div>
@@ -500,6 +507,7 @@
         let sessionMode = 'dynamic';
         let spacedQueue = [];
         let isStudyPanelOpen = true; 
+        let isHeaderHintOpen = false;
         
         let currentAttempt = 1;
         let isTransferQuestion = false;
@@ -573,6 +581,20 @@
             };
 
             recognition.start();
+        }
+
+        function toggleHeaderHint() {
+            isHeaderHintOpen = !isHeaderHintOpen;
+            const hintBox = document.getElementById("header-hint-box");
+            const hintBtn = document.getElementById("header-hint-btn");
+            
+            if (isHeaderHintOpen) {
+                hintBox.classList.remove("hidden");
+                hintBtn.className = "min-h-[36px] text-[11px] bg-amber-600 text-white border border-amber-600 px-3 py-1 rounded-lg font-medium transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500";
+            } else {
+                hintBox.classList.add("hidden");
+                hintBtn.className = "min-h-[36px] text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1 rounded-lg font-medium transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500";
+            }
         }
 
         function switchLandingTab(tabKey) {
@@ -1181,6 +1203,13 @@
             currentQuestion = data;
             isAnswered = false; 
             currentAttempt = 1; 
+            isHeaderHintOpen = false;
+            
+            document.getElementById("header-hint-box").classList.add("hidden");
+            document.getElementById("header-hint-btn").className = "min-h-[36px] text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1 rounded-lg font-medium transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500";
+            
+            const derivedHint = data.hint || `Focus on ${data.chapter_context} under ${data.chapter || 'the relevant MPEP section'}. Pay close attention to procedural timeliness rules and statutory exceptions.`;
+            document.getElementById("header-hint-text").innerText = derivedHint;
 
             document.getElementById("badge-context").innerText = sessionMode === 'exam' ? `Exam Q ${examCurrentIndex}/${examTotalQuestions} | ${data.chapter_context}` : (isTransferQuestion ? `Transfer Concept | ${data.chapter_context}` : data.chapter_context);
             updateTypeBadge(data.question_type);
@@ -1595,7 +1624,7 @@
                             <div id="${commentsFeedId}" class="space-y-2 max-h-40 overflow-y-auto pr-1" aria-live="polite">
                                 <p class="text-xs text-slate-400 italic">Loading comments...</p>
                             </div>
-                            <form onsubmit="submitHistoryComment(event, '${qHash}', '${commentsFeedId}', '${userFieldId}', '${contentFieldId}')" class="space-y-2 pt-1 border-t border-slate-100">
+                            <form onsubmit="submitHistoryComment(event, '${qHash}', '${commentsFeedId}', '${userFieldId}', '${contentFieldId}')" class="space-y-2 pt-1 border-t border-indigo-100">
                                 <label for="${userFieldId}" class="sr-only">Your name</label>
                                 <input type="text" id="${userFieldId}" value="${currentUser ? currentUser.username : ''}" placeholder="Your name" class="w-full text-xs p-2.5 rounded-lg bg-white border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
                                 <div class="flex gap-2 items-center">
