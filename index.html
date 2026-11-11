@@ -860,7 +860,7 @@
             const lastSubmitted = localStorage.getItem("mpep_last_survey_date");
             if (!lastSubmitted) return true;
             const daysSince = (new Date() - new Date(lastSubmitted)) / (1000 * 60 * 60 * 24);
-            return daysSince >= 7;
+            return daysSince >= 1;
         }
 
         async function returnToLanding() {
