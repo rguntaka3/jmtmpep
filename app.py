@@ -5,14 +5,15 @@ import re
 import json
 import mimetypes
 import sqlite3
+import shutil
 from typing import List, Optional
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
-from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, func
+from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, Float, DateTime, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pathlib import Path
@@ -208,8 +209,16 @@ app.add_middleware(
 def read_index():
     return FileResponse(str(BASE_DIR / "index.html"))
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
+
 app.mount("/viewer", JavaScriptSafeStaticFiles(directory=str(BASE_DIR / "pdfjs"), html=True), name="pdfjs")
 app.mount("/pdfs", StaticFiles(directory=str(BASE_DIR)), name="root_pdfs")
+
+CLE_VIDEO_DIR = BASE_DIR / "cle_videos"
+CLE_VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/media/cle", StaticFiles(directory=str(CLE_VIDEO_DIR)), name="cle_media")
 
 # Database Setup
 DATABASE_URL = "sqlite:///./mpep_quiz.db"
@@ -281,6 +290,27 @@ class ConceptProgressDB(Base):
     successful_encounters = Column(Integer, default=0)
     last_reviewed_at = Column(String, default=lambda: datetime.now().isoformat())
 
+class CLEVideoDB(Base):
+    __tablename__ = "cle_videos"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    instructor = Column(String, default="USPTO / Patent Bar Faculty")
+    chapter = Column(String, nullable=False)
+    mpep_section = Column(String, nullable=True)
+    video_url = Column(String, nullable=False)
+    credit_hours = Column(Float, default=0.25)
+    duration_minutes = Column(Integer, default=5)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class CLEProgressDB(Base):
+    __tablename__ = "cle_progress"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, index=True, nullable=False)
+    video_id = Column(Integer, index=True, nullable=False)
+    completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime, nullable=True)
+
 Base.metadata.create_all(bind=engine)
 
 class CommentCreate(BaseModel):
@@ -329,6 +359,123 @@ class HistoryCreate(BaseModel):
 
 class GoogleAuthSchema(BaseModel):
     credential: str
+
+class CLECompleteRequest(BaseModel):
+    username: str
+    video_id: int
+    completed: bool = True
+
+ALLOWED_VIDEO_EXTS = {".mp4", ".webm", ".mov"}
+
+@app.get("/cle-videos")
+async def get_cle_videos(
+    chapter: Optional[str] = None,
+    username: Optional[str] = "guest",
+    db: Session = Depends(get_db)
+):
+    query = db.query(CLEVideoDB)
+    if chapter and chapter != "ALL":
+        query = query.filter(CLEVideoDB.chapter == chapter)
+    videos = query.order_by(CLEVideoDB.chapter.asc(), CLEVideoDB.id.desc()).all()
+
+    user_key = (username or "guest").strip().lower()
+    completed_records = (
+        db.query(CLEProgressDB)
+        .filter(CLEProgressDB.username == user_key, CLEProgressDB.completed == True)
+        .all()
+    )
+    completed_ids = {rec.video_id for rec in completed_records}
+
+    results = []
+    total_credits_earned = 0.0
+    for v in videos:
+        is_done = v.id in completed_ids
+        if is_done:
+            total_credits_earned += (v.credit_hours or 0.0)
+        results.append({
+            "id": v.id,
+            "title": v.title,
+            "instructor": v.instructor,
+            "chapter": v.chapter,
+            "mpep_section": v.mpep_section,
+            "video_url": v.video_url,
+            "credit_hours": v.credit_hours,
+            "duration_minutes": v.duration_minutes,
+            "description": v.description,
+            "completed": is_done
+        })
+
+    return {
+        "videos": results,
+        "total_credits_earned": round(total_credits_earned, 2)
+    }
+
+@app.post("/cle-videos/upload")
+async def upload_cle_video(
+    title: str = Form(...),
+    chapter: str = Form(...),
+    instructor: str = Form("Patent Bar Faculty"),
+    mpep_section: str = Form(""),
+    credit_hours: float = Form(0.25),
+    duration_minutes: int = Form(5),
+    description: str = Form(""),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in ALLOWED_VIDEO_EXTS:
+        raise HTTPException(status_code=400, detail="Unsupported video format. Use .mp4, .webm, or .mov.")
+
+    raw_name = Path(file.filename).name
+    safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", raw_name)
+    if not safe_name:
+        raise HTTPException(status_code=400, detail="Invalid video filename.")
+
+    dest_path = (CLE_VIDEO_DIR / safe_name).resolve()
+    if not dest_path.is_relative_to(CLE_VIDEO_DIR.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid file path.")
+
+    with dest_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    runtime_url = f"/media/cle/{safe_name}"
+    db_video = CLEVideoDB(
+        title=title.strip(),
+        instructor=(instructor or "Patent Bar Faculty").strip(),
+        chapter=chapter.strip(),
+        mpep_section=(mpep_section or "").strip(),
+        video_url=runtime_url,
+        credit_hours=credit_hours,
+        duration_minutes=duration_minutes,
+        description=(description or "").strip(),
+    )
+    db.add(db_video)
+    db.commit()
+    db.refresh(db_video)
+    return {"status": "success", "id": db_video.id, "video_url": runtime_url}
+
+@app.post("/cle-videos/complete")
+async def toggle_cle_completion(payload: CLECompleteRequest, db: Session = Depends(get_db)):
+    user = (payload.username or "guest").strip().lower()
+    record = (
+        db.query(CLEProgressDB)
+        .filter(CLEProgressDB.username == user, CLEProgressDB.video_id == payload.video_id)
+        .first()
+    )
+    if record:
+        record.completed = payload.completed
+        record.completed_at = datetime.utcnow() if payload.completed else None
+    else:
+        record = CLEProgressDB(
+            username=user,
+            video_id=payload.video_id,
+            completed=payload.completed,
+            completed_at=datetime.utcnow() if payload.completed else None
+        )
+        db.add(record)
+
+    db.commit()
+    return {"status": "success", "completed": payload.completed}
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com")
 

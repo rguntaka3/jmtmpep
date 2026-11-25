@@ -60,6 +60,9 @@
                 <button onclick="switchLandingTab('community')" id="tab-btn-community" role="tab" aria-selected="false" aria-controls="landing-tab-community" class="flex-1 py-2.5 rounded-lg text-slate-700 hover:text-indigo-900 transition cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     Community Discussions
                 </button>
+                <button onclick="switchLandingTab('cle')" id="tab-btn-cle" role="tab" aria-selected="false" aria-controls="landing-tab-cle" class="flex-1 py-2.5 rounded-lg text-slate-700 hover:text-indigo-900 transition cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    CLE Videos
+                </button>
                 <button onclick="switchLandingTab('outcome')" id="tab-btn-outcome" role="tab" aria-selected="false" aria-controls="landing-tab-outcome" class="flex-1 py-2.5 rounded-lg text-slate-700 hover:text-indigo-900 transition cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     Report actual exam result
                 </button>
@@ -141,7 +144,122 @@
                 </div>
             </div>
 
-            <!-- TAB 3: REPORT ACTUAL EXAM RESULT -->
+            <!-- TAB 3: CONTINUING LEGAL EDUCATION (CLE) SHORT-FORM VIDEOS -->
+            <div id="landing-tab-cle" role="tabpanel" aria-labelledby="tab-btn-cle" class="hidden bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 min-h-[460px]">
+                <!-- Header & Credit Summary -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-indigo-900">Continuing Legal Education (CLE) Short-Form Library</h2>
+                        <p class="text-xs text-slate-500">Watch MPEP-aligned micro-lectures stored locally on disk and track earned CLE credits.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-50 border border-indigo-100 px-3.5 py-2 rounded-xl text-right">
+                            <span class="block text-[10px] font-bold uppercase tracking-wider text-indigo-600">Earned CLE Credits</span>
+                            <span id="cle-earned-credits" class="text-sm font-extrabold text-indigo-950">0.0 hrs</span>
+                        </div>
+                        <button onclick="toggleCleAddForm()" aria-expanded="false" aria-controls="cle-add-form-container" id="btn-toggle-cle-form" class="min-h-[40px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            + Upload CLE Video
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Collapsible Upload Short-Form Video Form -->
+                <form id="cle-add-form-container" onsubmit="submitNewCleVideo(event)" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold uppercase tracking-wide text-slate-700">Upload Short-Form CLE Video to Disk</h3>
+                        <span class="text-[11px] text-slate-400">Accepted formats: .mp4, .webm, .mov</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="cle-input-title" class="block text-xs font-semibold text-slate-700 mb-1">Video Title *</label>
+                            <input id="cle-input-title" type="text" required placeholder="e.g., 35 U.S.C. § 184 Foreign Filing Licenses" class="w-full p-2.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="cle-input-chapter" class="block text-xs font-semibold text-slate-700 mb-1">MPEP Chapter *</label>
+                            <select id="cle-input-chapter" class="w-full p-2.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="Chapter 100">Chapter 100 (Secrecy & Foreign Filing)</option>
+                                <option value="Chapter 200">Chapter 200 (Types & Priority Claims)</option>
+                                <option value="Chapter 300">Chapter 300 (Ownership & Assignment)</option>
+                                <option value="Chapter 600">Chapter 600 (Parts, Form & Content)</option>
+                                <option value="Chapter 700" selected>Chapter 700 (Examination of Applications)</option>
+                                <option value="Chapter 2100">Chapter 2100 (Patentability)</option>
+                                <option value="Ethics & Practitioner Conduct">Ethics & Practitioner Conduct</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="cle-input-file" class="block text-xs font-semibold text-slate-700 mb-1">Select Video File (.mp4 / .webm / .mov) *</label>
+                            <input id="cle-input-file" type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" required class="w-full p-2 text-xs border border-slate-300 rounded-lg bg-white file:mr-3 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="cle-input-section" class="block text-xs font-semibold text-slate-700 mb-1">MPEP Section</label>
+                                <input id="cle-input-section" type="text" placeholder="e.g., MPEP § 140" class="w-full p-2.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="cle-input-credits" class="block text-xs font-semibold text-slate-700 mb-1">CLE Credits (hrs)</label>
+                                <input id="cle-input-credits" type="number" step="0.05" min="0" value="0.25" class="w-full p-2.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="cle-input-desc" class="block text-xs font-semibold text-slate-700 mb-1">Key Takeaways & Statutory Summary</label>
+                        <textarea id="cle-input-desc" rows="2" placeholder="Summarize the rule, exception, or 01.2024 revision covered in this short video..." class="w-full p-2.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
+                    <div class="flex justify-end items-center gap-2">
+                        <span id="cle-upload-status" class="text-xs text-indigo-700 font-medium mr-auto"></span>
+                        <button type="button" onclick="toggleCleAddForm()" class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-200 hover:bg-slate-300 rounded-lg cursor-pointer">Cancel</button>
+                        <button type="submit" id="cle-upload-submit-btn" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg cursor-pointer">Upload & Publish</button>
+                    </div>
+                </form>
+
+                <!-- Active Video Runtime Player Stage -->
+                <div id="cle-active-player-card" class="hidden bg-slate-900 text-white rounded-2xl overflow-hidden border border-slate-800 shadow-md">
+                    <div class="flex justify-between items-center px-4 py-2 bg-slate-950 border-b border-slate-800 text-[11px] text-slate-300">
+                        <span class="font-semibold text-indigo-300">Now Playing (Runtime Disk Stream)</span>
+                        <button onclick="closeClePlayer()" class="text-slate-400 hover:text-white font-bold px-2 py-0.5 rounded cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-label="Close video player">✕ Close Player</button>
+                    </div>
+                    <div id="cle-player-embed-wrapper" class="w-full max-h-[460px] flex items-center justify-center bg-black"></div>
+                    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-indigo-300">
+                                <span id="cle-active-chapter">Chapter 700</span>
+                                <span>•</span>
+                                <span id="cle-active-section">General MPEP</span>
+                                <span>•</span>
+                                <span id="cle-active-credits">0.25 CLE Credit</span>
+                            </div>
+                            <h3 id="cle-active-title" class="text-sm sm:text-base font-bold text-white">Video Title</h3>
+                            <p id="cle-active-desc" class="text-xs text-slate-300 leading-relaxed"></p>
+                        </div>
+                        <button id="cle-active-complete-btn" onclick="toggleActiveCleComplete()" class="shrink-0 min-h-[40px] px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                            Mark Completed for Credit
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Bar & Video Catalog Grid -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <label for="cle-filter-chapter" class="text-xs font-bold text-slate-700">Filter by MPEP Chapter:</label>
+                        <select id="cle-filter-chapter" onchange="loadCleVideos()" class="p-2 text-xs border border-slate-300 rounded-lg bg-slate-50 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="ALL">All MPEP Chapters</option>
+                            <option value="Chapter 100">Chapter 100</option>
+                            <option value="Chapter 200">Chapter 200</option>
+                            <option value="Chapter 300">Chapter 300</option>
+                            <option value="Chapter 600">Chapter 600</option>
+                            <option value="Chapter 700">Chapter 700</option>
+                            <option value="Chapter 2100">Chapter 2100</option>
+                            <option value="Ethics & Practitioner Conduct">Ethics & Practitioner Conduct</option>
+                        </select>
+                    </div>
+
+                    <div id="cle-videos-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4" aria-live="polite">
+                        <p class="text-xs text-slate-400 italic col-span-full text-center py-8">Loading CLE video library...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: REPORT ACTUAL EXAM RESULT -->
             <div id="landing-tab-outcome" role="tabpanel" aria-labelledby="tab-btn-outcome" class="hidden bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 min-h-[460px] flex flex-col justify-between">
                 <div class="space-y-4">
                     <div class="border-b border-slate-100 pb-3">
@@ -527,6 +645,9 @@
         let examTotalQuestions = 50;   // Default: 50 questions per session block
         let examCurrentIndex = 0;
 
+        let cleCatalogCache = [];
+        let activeCleVideo = null;
+
         const API_BASE = "";
 
         document.addEventListener("DOMContentLoaded", async () => {
@@ -534,6 +655,7 @@
             await fetchHistoryCount();
             await fetchAvailableChapters();
             loadCommunityDiscussions();
+            loadCleVideos();
         });
 
         // Helper function to calculate mastery level based on attempts and accuracy
@@ -598,7 +720,7 @@
         }
 
         function switchLandingTab(tabKey) {
-            ['setup', 'community', 'outcome'].forEach(k => {
+            ['setup', 'community', 'cle', 'outcome'].forEach(k => {
                 const btn = document.getElementById(`tab-btn-${k}`);
                 const content = document.getElementById(`landing-tab-${k}`);
                 if (k === tabKey) {
@@ -611,6 +733,206 @@
                     content.classList.add("hidden");
                 }
             });
+            if (tabKey === 'cle') {
+                loadCleVideos();
+            }
+        }
+
+        // --- CLE SHORT-FORM VIDEO CONTROLLERS ---
+        function toggleCleAddForm() {
+            const form = document.getElementById("cle-add-form-container");
+            const btn = document.getElementById("btn-toggle-cle-form");
+            const isHidden = form.classList.toggle("hidden");
+            btn.setAttribute("aria-expanded", String(!isHidden));
+        }
+
+        function buildCleVideoHtml(url, title) {
+            // Local disk video served by FastAPI StaticFiles (e.g., /media/cle/ch100_clip.mp4)
+            if (url.startsWith("/media/") || url.startsWith("cle_videos/") || /\.(mp4|webm|mov)(\?.*)?$/i.test(url)) {
+                const resolvedSrc = url.startsWith("/") || url.startsWith("http") ? url : `${API_BASE}/${url}`;
+                return `
+                    <video
+                        class="w-full max-h-[460px] object-contain bg-black"
+                        controls
+                        autoplay
+                        playsinline
+                        preload="metadata"
+                        aria-label="${escapeHtml(title)}"
+                        src="${resolvedSrc}">
+                        Your browser does not support HTML5 video playback.
+                    </video>
+                `;
+            }
+
+            // External YouTube / Shorts fallback
+            const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+            if (ytMatch) {
+                return `<iframe class="w-full aspect-video" src="https://www.youtube.com/embed/${ytMatch[1]}" title="${escapeHtml(title)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            }
+
+            // External Vimeo fallback
+            const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+            if (vimeoMatch) {
+                return `<iframe class="w-full aspect-video" src="https://player.vimeo.com/video/${vimeoMatch[1]}" title="${escapeHtml(title)}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+            }
+
+            return `<p class="text-xs text-slate-300 p-6">Unsupported video source: ${escapeHtml(url)}</p>`;
+        }
+
+        async function loadCleVideos() {
+            const grid = document.getElementById("cle-videos-grid");
+            if (!grid) return;
+
+            const chapterEl = document.getElementById("cle-filter-chapter");
+            const chapter = chapterEl ? chapterEl.value : "ALL";
+            const username = getActiveUsername();
+
+            try {
+                const res = await fetch(`${API_BASE}/cle-videos?chapter=${encodeURIComponent(chapter)}&username=${encodeURIComponent(username)}`);
+                if (!res.ok) throw new Error("Failed to fetch CLE videos");
+                const data = await res.json();
+
+                cleCatalogCache = data.videos || [];
+                const creditDisplay = document.getElementById("cle-earned-credits");
+                if (creditDisplay) {
+                    creditDisplay.innerText = `${(data.total_credits_earned || 0).toFixed(2)} hrs`;
+                }
+
+                if (cleCatalogCache.length === 0) {
+                    grid.innerHTML = `<p class="text-xs text-slate-400 italic col-span-full text-center py-8">No CLE videos stored for this selection yet. Click "+ Upload CLE Video" above to add a short-form video.</p>`;
+                    return;
+                }
+
+                grid.innerHTML = cleCatalogCache.map(v => `
+                    <article class="border ${v.completed ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200 bg-white'} rounded-xl p-4 flex flex-col justify-between gap-3 shadow-2xs hover:border-indigo-300 transition">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700">${escapeHtml(v.chapter)}</span>
+                                <span class="text-[11px] font-semibold ${v.completed ? 'text-emerald-700' : 'text-slate-500'}">
+                                    ${v.completed ? '✓ Completed' : `${v.credit_hours} Credit Hr`}
+                                </span>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900">${escapeHtml(v.title)}</h3>
+                            ${v.mpep_section ? `<p class="text-[11px] font-medium text-indigo-600">${escapeHtml(v.mpep_section)}</p>` : ''}
+                            <p class="text-xs text-slate-600 leading-relaxed">${escapeHtml(v.description || 'Short-form MPEP Continuing Legal Education video module.')}</p>
+                        </div>
+                        <button onclick="playCleVideo(${v.id})" class="w-full min-h-[38px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 rounded-lg transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            ▶ Play Short Video
+                        </button>
+                    </article>
+                `).join("");
+            } catch (err) {
+                console.error("Failed to load CLE videos:", err);
+                grid.innerHTML = `<p class="text-xs text-rose-500 col-span-full text-center py-6">Unable to load CLE videos from server.</p>`;
+            }
+        }
+
+        function playCleVideo(videoId) {
+            const video = cleCatalogCache.find(v => v.id === videoId);
+            if (!video) return;
+            activeCleVideo = video;
+
+            const stage = document.getElementById("cle-active-player-card");
+            stage.classList.remove("hidden");
+
+            document.getElementById("cle-player-embed-wrapper").innerHTML = buildCleVideoHtml(video.video_url, video.title);
+            document.getElementById("cle-active-chapter").innerText = video.chapter;
+            document.getElementById("cle-active-section").innerText = video.mpep_section || "General MPEP";
+            document.getElementById("cle-active-credits").innerText = `${video.credit_hours} CLE Credit`;
+            document.getElementById("cle-active-title").innerText = video.title;
+            document.getElementById("cle-active-desc").innerText = video.description || "";
+
+            updateCompleteButtonState(video.completed);
+            stage.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+
+        function closeClePlayer() {
+            const wrapper = document.getElementById("cle-player-embed-wrapper");
+            if (wrapper) wrapper.innerHTML = "";
+            document.getElementById("cle-active-player-card").classList.add("hidden");
+            activeCleVideo = null;
+        }
+
+        function updateCompleteButtonState(isCompleted) {
+            const btn = document.getElementById("cle-active-complete-btn");
+            if (!btn) return;
+            if (isCompleted) {
+                btn.innerText = "✓ Credit Recorded (Undo)";
+                btn.className = "shrink-0 min-h-[40px] px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer bg-slate-700 hover:bg-slate-600 text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400";
+            } else {
+                btn.innerText = "Mark Completed for Credit";
+                btn.className = "shrink-0 min-h-[40px] px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-400";
+            }
+        }
+
+        async function toggleActiveCleComplete() {
+            if (!activeCleVideo) return;
+            const username = getActiveUsername();
+            const nextState = !activeCleVideo.completed;
+
+            try {
+                const res = await fetch(`${API_BASE}/cle-videos/complete`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        username: username,
+                        video_id: activeCleVideo.id,
+                        completed: nextState
+                    })
+                });
+                if (!res.ok) throw new Error("Failed to update completion status");
+
+                activeCleVideo.completed = nextState;
+                updateCompleteButtonState(nextState);
+                await loadCleVideos();
+            } catch (err) {
+                alert("Could not update CLE credit status.");
+            }
+        }
+
+        async function submitNewCleVideo(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById("cle-input-file");
+            const statusEl = document.getElementById("cle-upload-status");
+            const submitBtn = document.getElementById("cle-upload-submit-btn");
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("Please select a video file (.mp4, .webm, or .mov) to upload.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("title", document.getElementById("cle-input-title").value.trim());
+            formData.append("chapter", document.getElementById("cle-input-chapter").value);
+            formData.append("mpep_section", document.getElementById("cle-input-section").value.trim());
+            formData.append("credit_hours", document.getElementById("cle-input-credits").value || "0.25");
+            formData.append("description", document.getElementById("cle-input-desc").value.trim());
+            formData.append("file", fileInput.files[0]);
+
+            submitBtn.disabled = true;
+            statusEl.innerText = "Uploading video file to disk...";
+
+            try {
+                const res = await fetch(`${API_BASE}/cle-videos/upload`, {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Upload failed");
+
+                statusEl.innerText = "";
+                event.target.reset();
+                toggleCleAddForm();
+                await loadCleVideos();
+                if (data.id) {
+                    playCleVideo(data.id);
+                }
+            } catch (err) {
+                statusEl.innerText = "";
+                alert("Video Upload Error: " + err.message);
+            } finally {
+                submitBtn.disabled = false;
+            }
         }
 
         function checkUserSession() {
@@ -647,6 +969,7 @@
                 await fetchHistoryCount();
                 await fetchAvailableChapters();
                 loadCommunityDiscussions();
+                loadCleVideos();
                 alert(`Welcome back, ${currentUser.username}!`);
             } catch (err) {
                 alert("Sign-In Error: " + err.message);
@@ -663,6 +986,7 @@
             await fetchHistoryCount();
             await fetchAvailableChapters();
             loadCommunityDiscussions();
+            loadCleVideos();
             returnToLanding();
         }
 
@@ -764,6 +1088,7 @@
 
         async function startQuiz() {
             inspectedUser = null;
+            closeClePlayer();
             if (sessionMode !== 'spaced') {
                 const checkboxes = document.querySelectorAll('input[name="chapter"]:checked');
                 selectedChapters = Array.from(checkboxes).map(cb => cb.value);
@@ -884,10 +1209,12 @@
             await fetchHistoryCount();
             await fetchAvailableChapters();
             loadCommunityDiscussions();
+            loadCleVideos();
         }
 
         async function showHistoryView() {
             inspectedUser = null;
+            closeClePlayer();
             document.getElementById("landing-view").classList.add("hidden");
             document.getElementById("quiz-view").classList.add("hidden");
             document.getElementById("teacher-view").classList.add("hidden");
@@ -903,6 +1230,7 @@
         }
 
         async function showTeacherView() {
+            closeClePlayer();
             document.getElementById("landing-view").classList.add("hidden");
             document.getElementById("quiz-view").classList.add("hidden");
             document.getElementById("history-view").classList.add("hidden");
@@ -1426,6 +1754,7 @@
             await fetchHistoryCount();
             await fetchAvailableChapters();
             loadCommunityDiscussions();
+            loadCleVideos();
         }
 
         async function submitReactionSurvey() {
@@ -1646,7 +1975,7 @@
         }
 
         function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
         function renderHistoryList() {
