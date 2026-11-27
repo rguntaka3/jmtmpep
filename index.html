@@ -177,12 +177,35 @@
                         <div>
                             <label for="cle-input-chapter" class="block text-xs font-semibold text-slate-700 mb-1">MPEP Chapter *</label>
                             <select id="cle-input-chapter" class="w-full p-2.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="Chapter 100">Chapter 100 (Secrecy & Foreign Filing)</option>
-                                <option value="Chapter 200">Chapter 200 (Types & Priority Claims)</option>
-                                <option value="Chapter 300">Chapter 300 (Ownership & Assignment)</option>
-                                <option value="Chapter 600">Chapter 600 (Parts, Form & Content)</option>
-                                <option value="Chapter 700" selected>Chapter 700 (Examination of Applications)</option>
-                                <option value="Chapter 2100">Chapter 2100 (Patentability)</option>
+                                <option value="Chapter 100">Chapter 100</option>
+                                <option value="Chapter 200">Chapter 200</option>
+                                <option value="Chapter 300">Chapter 300</option>
+                                <option value="Chapter 400">Chapter 400</option>
+                                <option value="Chapter 500">Chapter 500</option>
+                                <option value="Chapter 600">Chapter 600</option>
+                                <option value="Chapter 700" selected>Chapter 700</option>
+                                <option value="Chapter 800">Chapter 800</option>
+                                <option value="Chapter 900">Chapter 900</option>
+                                <option value="Chapter 1000">Chapter 1000</option>
+                                <option value="Chapter 1100">Chapter 1100</option>
+                                <option value="Chapter 1200">Chapter 1200</option>
+                                <option value="Chapter 1300">Chapter 1300</option>
+                                <option value="Chapter 1400">Chapter 1400</option>
+                                <option value="Chapter 1500">Chapter 1500</option>
+                                <option value="Chapter 1600">Chapter 1600</option>
+                                <option value="Chapter 1700">Chapter 1700</option>
+                                <option value="Chapter 1800">Chapter 1800</option>
+                                <option value="Chapter 1900">Chapter 1900</option>
+                                <option value="Chapter 2000">Chapter 2000</option>
+                                <option value="Chapter 2100">Chapter 2100</option>
+                                <option value="Chapter 2200">Chapter 2200</option>
+                                <option value="Chapter 2300">Chapter 2300</option>
+                                <option value="Chapter 2400">Chapter 2400</option>
+                                <option value="Chapter 2500">Chapter 2500</option>
+                                <option value="Chapter 2600">Chapter 2600</option>
+                                <option value="Chapter 2700">Chapter 2700</option>
+                                <option value="Chapter 2800">Chapter 2800</option>
+                                <option value="Chapter 2900">Chapter 2900</option>
                                 <option value="Ethics & Practitioner Conduct">Ethics & Practitioner Conduct</option>
                             </select>
                         </div>
@@ -246,9 +269,32 @@
                             <option value="Chapter 100">Chapter 100</option>
                             <option value="Chapter 200">Chapter 200</option>
                             <option value="Chapter 300">Chapter 300</option>
+                            <option value="Chapter 400">Chapter 400</option>
+                            <option value="Chapter 500">Chapter 500</option>
                             <option value="Chapter 600">Chapter 600</option>
                             <option value="Chapter 700">Chapter 700</option>
+                            <option value="Chapter 800">Chapter 800</option>
+                            <option value="Chapter 900">Chapter 900</option>
+                            <option value="Chapter 1000">Chapter 1000</option>
+                            <option value="Chapter 1100">Chapter 1100</option>
+                            <option value="Chapter 1200">Chapter 1200</option>
+                            <option value="Chapter 1300">Chapter 1300</option>
+                            <option value="Chapter 1400">Chapter 1400</option>
+                            <option value="Chapter 1500">Chapter 1500</option>
+                            <option value="Chapter 1600">Chapter 1600</option>
+                            <option value="Chapter 1700">Chapter 1700</option>
+                            <option value="Chapter 1800">Chapter 1800</option>
+                            <option value="Chapter 1900">Chapter 1900</option>
+                            <option value="Chapter 2000">Chapter 2000</option>
                             <option value="Chapter 2100">Chapter 2100</option>
+                            <option value="Chapter 2200">Chapter 2200</option>
+                            <option value="Chapter 2300">Chapter 2300</option>
+                            <option value="Chapter 2400">Chapter 2400</option>
+                            <option value="Chapter 2500">Chapter 2500</option>
+                            <option value="Chapter 2600">Chapter 2600</option>
+                            <option value="Chapter 2700">Chapter 2700</option>
+                            <option value="Chapter 2800">Chapter 2800</option>
+                            <option value="Chapter 2900">Chapter 2900</option>
                             <option value="Ethics & Practitioner Conduct">Ethics & Practitioner Conduct</option>
                         </select>
                     </div>
@@ -739,6 +785,33 @@
         }
 
         // --- CLE SHORT-FORM VIDEO CONTROLLERS ---
+        function populateCleChapterSelects(chaptersList) {
+            if (!chaptersList || chaptersList.length === 0) return;
+
+            const filterSelect = document.getElementById("cle-filter-chapter");
+            const uploadSelect = document.getElementById("cle-input-chapter");
+
+            if (filterSelect) {
+                const currentFilter = filterSelect.value || "ALL";
+                filterSelect.innerHTML = `<option value="ALL">All MPEP Chapters</option>` +
+                    chaptersList.map(c => `<option value="Chapter ${c.chapter}">Chapter ${c.chapter}</option>`).join("") +
+                    `<option value="Ethics & Practitioner Conduct">Ethics & Practitioner Conduct</option>`;
+                if ([...filterSelect.options].some(o => o.value === currentFilter)) {
+                    filterSelect.value = currentFilter;
+                }
+            }
+
+            if (uploadSelect) {
+                const currentUpload = uploadSelect.value;
+                uploadSelect.innerHTML = chaptersList.map(c =>
+                    `<option value="Chapter ${c.chapter}">Chapter ${c.chapter}</option>`
+                ).join("") + `<option value="Ethics & Practitioner Conduct">Ethics & Practitioner Conduct</option>`;
+                if (currentUpload && [...uploadSelect.options].some(o => o.value === currentUpload)) {
+                    uploadSelect.value = currentUpload;
+                }
+            }
+        }
+
         function toggleCleAddForm() {
             const form = document.getElementById("cle-add-form-container");
             const btn = document.getElementById("btn-toggle-cle-form");
@@ -1030,6 +1103,8 @@
                     const data = await res.json();
                     const container = document.getElementById("chapter-checkboxes");
                     container.innerHTML = "";
+
+                    populateCleChapterSelects(data.chapters);
 
                     const uname = getActiveUsername();
                     const histRes = await fetch(`${API_BASE}/history?username=${encodeURIComponent(uname)}`);
